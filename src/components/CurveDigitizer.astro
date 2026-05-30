@@ -1,0 +1,216 @@
+---
+/**
+ * CurveDigitizer — upload a screenshot of a cycle chart and recover the per-day
+ * BBT and/or LH values, entirely in the browser. Handles dual-axis charts
+ * (e.g. BBT on the right axis, LH on the left) via a per-series workflow.
+ *
+ * Emits `fertiluna:digitized` with `{ temps, lh }` (each `(number|null)[]` or
+ * null) that the host page uses to fill its editable table.
+ */
+---
+
+<section class="digitizer card" id="digitizer">
+  <div class="dz-head">
+    <h2>📷 Importer une capture d'écran</h2>
+    <p class="muted">
+      Vous avez une courbe dans une autre appli (Inito, Premom, Clearblue,
+      Flo…) ou sur papier&nbsp;? Importez une capture, calibrez les axes en
+      quelques clics, et FertiLuna récupère vos valeurs.
+      <strong>L'image reste sur votre appareil.</strong>
+    </p>
+  </div>
+
+  <label class="dz-upload btn btn-ghost">
+    Choisir une image
+    <input type="file" accept="image/*" id="dz-file" hidden />
+  </label>
+
+  <div class="dz-when-image">
+    <div class="dz-series" id="dz-series" role="tablist" aria-label="Série à extraire">
+      <span class="dz-series-label">Série :</span>
+      <button type="button" data-series="temp" class="dz-tab active">
+        🌡️ Température (BBT)
+      </button>
+      <button type="button" data-series="lh" class="dz-tab">
+        💧 LH / hormone
+      </button>
+    </div>
+
+    <ol class="dz-steps muted">
+      <li>Calibrez l'axe des <strong>jours</strong> (2 clics sur la ligne ZT/jour).</li>
+      <li>Calibrez l'axe de <strong>valeurs</strong> de la série choisie — attention, BBT et LH sont souvent sur des axes <strong>opposés</strong>.</li>
+      <li>Cliquez sur la <strong>courbe</strong> de cette série pour prendre sa couleur.</li>
+      <li>Changez de série pour la seconde courbe, ou importez.</li>
+    </ol>
+
+    <p class="dz-prompt" id="dz-prompt" aria-live="polite"></p>
+
+    <div class="dz-stage">
+      <div class="dz-canvas-wrap">
+        <canvas id="dz-canvas"></canvas>
+        <canvas id="dz-overlay"></canvas>
+        <canvas id="dz-loupe" class="dz-loupe"></canvas>
+      </div>
+    </div>
+
+    <div class="dz-controls">
+      <label class="dz-tol">
+        Tolérance couleur
+        <input type="range" id="dz-tol" min="10" max="120" value="45" />
+        <span id="dz-tol-val">45</span>
+      </label>
+      <button type="button" class="btn-text" id="dz-redo">
+        Recalibrer cette série
+      </button>
+      <button type="button" class="btn btn-primary" id="dz-import" disabled>
+        Importer dans le tableau ↓
+      </button>
+    </div>
+
+    <p class="dz-status muted" id="dz-status" aria-live="polite"></p>
+  </div>
+</section>
+
+<script>
+  import { initDigitizer } from "../lib/digitizerUI";
+
+  const root = document.getElementById("digitizer") as HTMLElement;
+  if (root) {
+    initDigitizer({
+      root,
+      fileInput: document.getElementById("dz-file") as HTMLInputElement,
+      canvas: document.getElementById("dz-canvas") as HTMLCanvasElement,
+      overlay: document.getElementById("dz-overlay") as HTMLCanvasElement,
+      loupe: document.getElementById("dz-loupe") as HTMLCanvasElement,
+      prompt: document.getElementById("dz-prompt") as HTMLElement,
+      toleranceInput: document.getElementById("dz-tol") as HTMLInputElement,
+      toleranceLabel: document.getElementById("dz-tol-val") as HTMLElement,
+      redoBtn: document.getElementById("dz-redo") as HTMLButtonElement,
+      importBtn: document.getElementById("dz-import") as HTMLButtonElement,
+      status: document.getElementById("dz-status") as HTMLElement,
+      seriesTabs: document.getElementById("dz-series") as HTMLElement,
+    });
+  }
+</script>
+
+<style>
+  .digitizer {
+    margin-top: 16px;
+  }
+  .dz-head h2 {
+    margin-bottom: 4px;
+    font-size: 1.2rem;
+  }
+  .dz-upload {
+    display: inline-flex;
+    cursor: pointer;
+    margin: 8px 0;
+  }
+  .dz-when-image {
+    display: none;
+  }
+  .digitizer.has-image .dz-when-image {
+    display: block;
+  }
+
+  .dz-series {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+  }
+  .dz-series-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .dz-tab {
+    border: 1.5px solid var(--line);
+    background: #fff;
+    border-radius: 999px;
+    padding: 7px 14px;
+    font: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+    position: relative;
+  }
+  .dz-tab.active {
+    border-color: var(--rose);
+    background: var(--rose-soft);
+    color: var(--rose-dark);
+    font-weight: 600;
+  }
+  .dz-tab.done::after {
+    content: "✓";
+    color: var(--positive);
+    font-weight: 700;
+    margin-left: 6px;
+  }
+
+  .dz-steps {
+    font-size: 0.86rem;
+    padding-left: 20px;
+    margin: 8px 0;
+  }
+  .dz-steps li {
+    margin: 2px 0;
+  }
+
+  .dz-prompt {
+    font-weight: 600;
+    color: var(--purple);
+    min-height: 1.3em;
+    margin: 8px 0;
+  }
+  .dz-stage {
+    display: block;
+  }
+  .dz-canvas-wrap {
+    position: relative;
+    max-width: 100%;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    line-height: 0;
+  }
+  #dz-canvas,
+  #dz-overlay {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  #dz-overlay {
+    position: absolute;
+    inset: 0;
+    cursor: crosshair;
+  }
+  .dz-loupe {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    z-index: 5;
+  }
+  .dz-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .dz-tol {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .dz-status {
+    margin-top: 10px;
+    min-height: 1.2em;
+    font-size: 0.9rem;
+  }
+</style>

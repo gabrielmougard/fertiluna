@@ -1,0 +1,65 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = "FertiLuna — Comprendre son cycle, prendre les bonnes décisions",
+  description = "Analysez votre courbe de température et vos tests LH en quelques minutes, sans inscription. Une analyse pédagogique, 100 % dans votre navigateur — vos données ne quittent jamais votre appareil.",
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#d6447f" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>{title}</title>
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="container">
+        <a href="/" class="brand">
+          <span class="flower" aria-hidden="true">&#127804;</span>
+          <span>FertiLuna</span>
+        </a>
+        <nav class="nav-links" aria-label="Navigation principale">
+          <a href="/outils/analyse-courbe">Analyser ma courbe</a>
+          <a href="/#outils">Les outils</a>
+          <a href="/a-propos">À propos</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>
+          <strong>FertiLuna</strong> n'est pas un dispositif médical. Les
+          résultats sont indicatifs et ne remplacent pas l'avis d'un
+          professionnel de santé.
+        </p>
+        <p class="muted">
+          Aucune donnée n'est collectée ni envoyée à un serveur. Toute l'analyse
+          se déroule dans votre navigateur. &copy; {new Date().getFullYear()}
+          FertiLuna.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

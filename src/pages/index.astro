@@ -1,0 +1,221 @@
+---
+import Base from "../layouts/Base.astro";
+
+const tools = [
+  {
+    href: "/outils/analyse-courbe",
+    star: true,
+    title: "Analyse simple de courbe",
+    desc: "Saisissez vos températures et tests LH du cycle. Obtenez une lecture claire : ovulation, phase lutéale, signaux à surveiller.",
+    cta: "Analyser mon cycle",
+    available: true,
+  },
+  {
+    href: "#",
+    title: "Analyse approfondie (3 cycles)",
+    desc: "Comparez plusieurs cycles, identifiez les tendances et recevez des pistes de soutien naturel.",
+    cta: "Bientôt",
+    available: false,
+  },
+  {
+    href: "#",
+    title: "Calcul semaines de grossesse",
+    desc: "Test positif ? Calculez où vous en êtes et obtenez une checklist personnalisée.",
+    cta: "Bientôt",
+    available: false,
+  },
+  {
+    href: "#",
+    title: "Lecteur de bilan hormonal",
+    desc: "FSH, AMH, TSH, progestérone… traduisez vos résultats en langage clair.",
+    cta: "Bientôt",
+    available: false,
+  },
+];
+---
+
+<Base>
+  <section class="hero section">
+    <div class="container">
+      <p class="eyebrow">Sans inscription &middot; 100 % dans votre navigateur</p>
+      <h1>
+        Comprendre son cycle.<br />
+        <span class="grad">Prendre les bonnes décisions.</span>
+      </h1>
+      <p class="lead">
+        Vous avez une courbe de température et des tests d'ovulation, mais vous
+        ne savez pas comment les lire&nbsp;? FertiLuna analyse vos données en
+        quelques minutes et vous explique ce qu'elles disent — avec les bonnes
+        questions à poser à votre médecin.
+      </p>
+      <div class="hero-cta">
+        <a href="/outils/analyse-courbe" class="btn btn-primary"
+          >Analyser ma courbe &rarr;</a
+        >
+        <a href="#outils" class="btn btn-ghost">Voir les outils</a>
+      </div>
+      <p class="privacy-note">
+        &#128274; Vos données ne quittent jamais votre appareil. Aucun compte,
+        aucun stockage serveur.
+      </p>
+    </div>
+  </section>
+
+  <section id="outils" class="section">
+    <div class="container">
+      <h2>Les outils FertiLuna</h2>
+      <p class="muted">
+        Chaque outil est gratuit, immédiat, et conçu pour être compris même par
+        une débutante.
+      </p>
+      <div class="tool-grid">
+        {
+          tools.map((t) => (
+            <a
+              href={t.href}
+              class={`tool-card card ${t.available ? "" : "soon"}`}
+            >
+              {t.star && <span class="star">&#11088; Outil principal</span>}
+              <h3>{t.title}</h3>
+              <p class="muted">{t.desc}</p>
+              <span class={`tool-cta ${t.available ? "live" : ""}`}>
+                {t.cta} {t.available && <>&rarr;</>}
+              </span>
+            </a>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section how">
+    <div class="container">
+      <h2>Comment ça marche</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>Saisissez vos données</h3>
+          <p class="muted">
+            Vos températures jour par jour, et vos tests LH si vous en avez.
+          </p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>Analyse instantanée</h3>
+          <p class="muted">
+            Un modèle de machine learning tourne directement dans votre
+            navigateur. Rien n'est envoyé en ligne.
+          </p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>Comprenez votre cycle</h3>
+          <p class="muted">
+            Une courbe annotée, une explication claire, et les questions à poser
+            à votre médecin.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    padding-top: 64px;
+    padding-bottom: 40px;
+  }
+  .hero h1 {
+    font-size: clamp(2.1rem, 5vw, 3.4rem);
+    font-weight: 800;
+    margin-bottom: 0.4em;
+  }
+  .grad {
+    background: linear-gradient(90deg, var(--rose), var(--purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .lead {
+    font-size: 1.2rem;
+    max-width: 620px;
+    color: var(--ink);
+  }
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 28px 0 14px;
+  }
+  .privacy-note {
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+
+  .tool-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 20px;
+    margin-top: 24px;
+  }
+  .tool-card {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.14s ease, box-shadow 0.14s ease;
+    position: relative;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    text-decoration: none;
+  }
+  .tool-card.soon {
+    opacity: 0.72;
+  }
+  .tool-card h3 {
+    margin-top: 8px;
+  }
+  .star {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--rose-dark);
+    background: var(--rose-soft);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .tool-cta {
+    display: inline-block;
+    margin-top: 14px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .tool-cta.live {
+    color: var(--rose-dark);
+  }
+
+  .how {
+    background: #fff;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 28px;
+    margin-top: 24px;
+  }
+  .step .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--rose);
+    color: #fff;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+</style>

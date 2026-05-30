@@ -1,0 +1,265 @@
+/*
+ * FertiLuna global styles. Palette taken from the roadmap brand:
+ *   primary rose    #d6447f
+ *   accent purple   #7e4b9e
+ *   soft pink bg    #fbeef4
+ * Mobile-first; layout grid widens on larger screens with ad rails.
+ */
+
+:root {
+  --rose: #d6447f;
+  --rose-dark: #b8336a;
+  --rose-soft: #fbeef4;
+  --purple: #7e4b9e;
+  --purple-soft: #f1ecf6;
+  --ink: #2c2230;
+  --muted: #6c6473;
+  --line: #ece6f0;
+  --positive: #2e9e6b;
+  --positive-soft: #e6f6ee;
+  --caution: #d98b25;
+  --caution-soft: #fdf3e4;
+  --danger: #d24b4b;
+  --info-soft: #eef2fb;
+  --radius: 16px;
+  --shadow: 0 8px 30px rgba(126, 75, 158, 0.08);
+  --shadow-lg: 0 16px 50px rgba(126, 75, 158, 0.14);
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  background: linear-gradient(180deg, #fff 0%, var(--rose-soft) 100%);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--rose-dark);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  color: var(--ink);
+  margin: 0 0 0.5em;
+}
+
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ── Header / nav ─────────────────────────────────── */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 1.25rem;
+  color: var(--rose-dark);
+  text-decoration: none;
+}
+.brand .flower {
+  font-size: 1.4rem;
+}
+.nav-links {
+  display: flex;
+  gap: 22px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.nav-links a {
+  color: var(--ink);
+}
+@media (max-width: 640px) {
+  .nav-links {
+    display: none;
+  }
+}
+
+/* ── Buttons ──────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 1rem;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.btn-primary {
+  background: var(--rose);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(214, 68, 127, 0.32);
+}
+.btn-primary:hover {
+  background: var(--rose-dark);
+  transform: translateY(-1px);
+  text-decoration: none;
+}
+.btn-primary:disabled {
+  background: #d9b9c9;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+.btn-ghost {
+  background: #fff;
+  color: var(--rose-dark);
+  border: 1.5px solid var(--rose);
+}
+.btn-ghost:hover {
+  background: var(--rose-soft);
+  text-decoration: none;
+}
+
+/* ── Cards / sections ─────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 28px;
+}
+
+.section {
+  padding: 56px 0;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--purple);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* ── Disclaimer banner ────────────────────────────── */
+.disclaimer {
+  background: var(--purple-soft);
+  border: 1px solid #e3d8ee;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+/* ── Footer ───────────────────────────────────────── */
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: #fff;
+  padding: 36px 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin-top: 40px;
+}
+.site-footer a {
+  color: var(--muted);
+}
+
+/* ── Tool layout with ad rails (desktop) ──────────── */
+.tool-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 1180px) {
+  .tool-layout {
+    grid-template-columns: 160px minmax(0, 1fr) 160px;
+    max-width: 1180px;
+  }
+}
+
+/* ── Ad slots ─────────────────────────────────────── */
+.ad-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #b9aec4;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: repeating-linear-gradient(
+    45deg,
+    #faf7fc,
+    #faf7fc 10px,
+    #f3eef8 10px,
+    #f3eef8 20px
+  );
+  border: 1px dashed #e1d6ec;
+  border-radius: 10px;
+}
+.ad-rail {
+  position: sticky;
+  top: 80px;
+  min-height: 600px;
+}
+.ad-inline {
+  min-height: 250px;
+  margin: 8px 0;
+}
+.ad-leaderboard {
+  min-height: 90px;
+}
+@media (max-width: 1179px) {
+  .ad-rail {
+    display: none;
+  }
+}
+
+/* visually-hidden but accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

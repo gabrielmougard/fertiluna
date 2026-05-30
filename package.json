@@ -1,0 +1,30 @@
+{
+  "name": "fertiluna",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "FertiLuna — outil web sans inscription d'analyse de cycle, inference ML 100% navigateur (Astro + Cloudflare + ONNX Runtime Web + DexieJS)",
+  "scripts": {
+    "sync-assets": "node scripts/sync-assets.mjs",
+    "dev": "npm run sync-assets && astro dev",
+    "build": "npm run sync-assets && astro build",
+    "preview": "wrangler dev ./dist/_worker.js/index.js",
+    "deploy": "npm run build && wrangler deploy",
+    "astro": "astro",
+    "check": "astro check",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.2.1",
+    "astro": "^5.2.5",
+    "dexie": "^4.0.11",
+    "onnxruntime-web": "^1.20.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.9",
+    "@cloudflare/workers-types": "^4.20250520.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.0.5",
+    "wrangler": "^4.18.0"
+  }
+}

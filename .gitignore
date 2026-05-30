@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+.astro/
+.DS_Store
+
+# Model artifacts are copied into public/models from model/artifacts by the
+# build script; the large ONNX files are tracked there, not duplicated here.

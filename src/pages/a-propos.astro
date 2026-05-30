@@ -1,0 +1,75 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  title="À propos — méthodologie FertiLuna"
+  description="Comment fonctionne FertiLuna : un modèle de machine learning entraîné sur données synthétiques selon les règles de la symptothermie, exécuté entièrement dans votre navigateur."
+>
+  <section class="section">
+    <div class="container narrow">
+      <p class="eyebrow">À propos</p>
+      <h1>Notre méthodologie, en toute transparence</h1>
+
+      <h2>Aucune donnée ne quitte votre appareil</h2>
+      <p>
+        FertiLuna ne crée pas de compte et ne stocke rien sur un serveur. Le
+        modèle d'analyse est téléchargé une seule fois puis mis en cache dans
+        votre navigateur (IndexedDB). Toute l'analyse — détection de
+        l'ovulation, évaluation des phases, classification — s'exécute
+        <strong>localement</strong>, sur votre appareil, grâce à un moteur
+        d'inférence ML (ONNX Runtime Web). Vos températures et tests ne sont
+        jamais transmis.
+      </p>
+
+      <h2>Un modèle interprétable, pas une boîte noire</h2>
+      <p>
+        L'analyse repose sur un algorithme de machine learning classique (forêt
+        aléatoire / <em>Random Forest</em>), et non sur un grand modèle de
+        langage. Ce choix est délibéré : chaque décision est traçable et
+        reproductible, et les règles s'appuient sur la symptothermie standard
+        (méthode SENSIPLAN, règle des « 3 températures au-dessus de 6 »).
+      </p>
+
+      <h2>Entraîné sur des données synthétiques</h2>
+      <p>
+        En l'absence de jeu de données réelles annotées à grande échelle, le
+        modèle est entraîné sur 50 000 cycles synthétiques générés selon des
+        paramètres physiologiquement plausibles, avec injection de bruit réaliste
+        (fièvre, mesures tardives, données manquantes). La « vérité terrain »
+        étant elle-même une règle clinique, cette approche offre une couverture
+        complète des cas limites.
+      </p>
+
+      <h2>Un garde-fou de confiance</h2>
+      <p>
+        Lorsque le modèle n'est pas suffisamment sûr de lui (probabilité
+        maximale inférieure à 60 %), il affiche « données insuffisantes » plutôt
+        qu'une analyse potentiellement fausse. Un détecteur d'anomalie
+        complémentaire signale les courbes très atypiques.
+      </p>
+
+      <div class="disclaimer">
+        <span aria-hidden="true">&#9888;&#65039;</span>
+        <span
+          >FertiLuna n'est pas un dispositif médical et ne pose aucun diagnostic.
+          Les résultats sont indicatifs et ne remplacent pas l'avis d'un
+          professionnel de santé.</span
+        >
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .narrow {
+    max-width: 720px;
+  }
+  h2 {
+    margin-top: 32px;
+    color: var(--purple);
+  }
+  .disclaimer {
+    margin-top: 32px;
+  }
+</style>

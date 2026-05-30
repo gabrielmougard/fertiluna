@@ -1,0 +1,32 @@
+name = "fertiluna"
+compatibility_date = "2025-05-20"
+compatibility_flags = ["nodejs_compat"]
+
+# Astro's Cloudflare adapter emits the worker + static assets into ./dist.
+main = "./dist/_worker.js/index.js"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
+# --------------------------------------------------
+# Environment variables
+#
+# FertiLuna stores NO user data. The only vars here are for the (future) ad
+# integration — left empty by default so the site runs ad-free in dev.
+#
+# For local dev, create a `.dev.vars` file:
+#   DEV_MODE=true
+#   ADSENSE_PUB_ID=ca-pub-XXXXXXXXXXXXXXXX
+#   ADSENSE_SLOT_INLINE=1234567890
+#
+# For production, set secrets:
+#   wrangler secret put ADSENSE_PUB_ID
+# --------------------------------------------------
+
+[vars]
+DEV_MODE = "false"
+ADSENSE_PUB_ID = ""
+ADSENSE_SLOT_TOP = ""
+ADSENSE_SLOT_INLINE = ""
+ADSENSE_SLOT_BOTTOM = ""

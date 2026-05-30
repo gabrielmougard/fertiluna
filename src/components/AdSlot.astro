@@ -1,0 +1,34 @@
+---
+/**
+ * AdSlot — a reusable, layout-stable ad placeholder.
+ *
+ * For now it renders a labelled placeholder box (the brief says ads come
+ * later). When ADSENSE_PUB_ID is configured it can be upgraded to emit a real
+ * <ins class="adsbygoogle"> unit. Reserving the space now prevents layout shift
+ * (CLS) later — important for both UX and ad viewability.
+ */
+interface Props {
+  slot: "top" | "inline" | "rail-left" | "rail-right" | "bottom";
+  label?: string;
+  class?: string;
+}
+const { slot, label, class: className = "" } = Astro.props;
+
+const sizeClass =
+  slot === "rail-left" || slot === "rail-right"
+    ? "ad-rail"
+    : slot === "inline"
+      ? "ad-inline"
+      : "ad-leaderboard";
+
+const defaultLabel =
+  slot === "inline" ? "Espace publicitaire" : "Publicité";
+---
+
+<aside
+  class={`ad-slot ${sizeClass} ${className}`}
+  data-ad-slot={slot}
+  aria-hidden="true"
+>
+  {label ?? defaultLabel}
+</aside>

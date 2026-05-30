@@ -1,0 +1,695 @@
+---
+import Base from "../../layouts/Base.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import CurveDigitizer from "../../components/CurveDigitizer.astro";
+import { CYCLE_MAX_DAYS } from "../../lib/constants";
+
+const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
+---
+
+<Base
+  title="Analyse de courbe de température — FertiLuna"
+  description="Saisissez vos températures et tests LH jour par jour. FertiLuna détecte l'ovulation, évalue vos phases folliculaire et lutéale, et vous explique votre cycle — sans inscription, dans votre navigateur."
+>
+  <div class="container">
+    <div class="tool-layout">
+      <AdSlot slot="rail-left" />
+
+      <div class="tool-main">
+        <header class="tool-head">
+          <p class="eyebrow">&#11088; Outil 1 — Analyse simple de courbe</p>
+          <h1>Analysez votre courbe</h1>
+          <p class="muted">
+            Saisissez vos températures du matin (et vos tests LH si vous en
+            avez). L'analyse tourne <strong>dans votre navigateur</strong> —
+            rien n'est envoyé en ligne.
+          </p>
+        </header>
+
+        <div class="disclaimer">
+          <span aria-hidden="true">&#9888;&#65039;</span>
+          <span
+            >FertiLuna n'est pas un dispositif médical. Les résultats sont
+            indicatifs et ne remplacent pas l'avis d'un professionnel de santé.</span
+          >
+        </div>
+
+        <!-- ── IMPORT FROM SCREENSHOT ── -->
+        <CurveDigitizer />
+
+        <!-- ── INPUT ── -->
+        <section id="input-panel" class="card input-card">
+          <div class="data-toggle" role="group" aria-label="Type de données">
+            <label class="chk"
+              ><input type="checkbox" id="use-temp" checked /> Température</label
+            >
+            <label class="chk"
+              ><input type="checkbox" id="use-lh" /> Tests LH</label
+            >
+          </div>
+
+          <div class="table-scroll">
+            <table class="cycle-table" id="cycle-table">
+              <thead>
+                <tr>
+                  <th scope="col">Jour</th>
+                  <th scope="col" class="col-temp">Temp. (°C)</th>
+                  <th scope="col" class="col-lh hidden">LH (0–3)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {
+                  days.map((d) => (
+                    <tr>
+                      <th scope="row">J{d}</th>
+                      <td class="col-temp">
+                        <input
+                          type="number"
+                          inputmode="decimal"
+                          step="0.01"
+                          min="35"
+                          max="39"
+                          data-kind="temp"
+                          data-day={d - 1}
+                          placeholder="—"
+                          aria-label={`Température jour ${d}`}
+                        />
+                      </td>
+                      <td class="col-lh hidden">
+                        <input
+                          type="number"
+                          inputmode="decimal"
+                          step="0.1"
+                          min="0"
+                          max="3"
+                          data-kind="lh"
+                          data-day={d - 1}
+                          placeholder="—"
+                          aria-label={`Test LH jour ${d}`}
+                        />
+                      </td>
+                    </tr>
+                  ))
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="actions">
+            <button id="analyze-btn" class="btn btn-primary"
+              >Analyser mon cycle &rarr;</button
+            >
+            <button id="demo-btn" class="btn btn-ghost"
+              >Remplir un exemple</button
+            >
+            <button id="clear-btn" class="btn-text">Effacer</button>
+          </div>
+
+          <p id="model-status" class="model-status muted" aria-live="polite"></p>
+        </section>
+
+        <!-- ── RESULT (filled by JS) ── -->
+        <section id="result-panel" class="result-panel" hidden></section>
+      </div>
+
+      <AdSlot slot="rail-right" />
+    </div>
+  </div>
+</Base>
+
+<script>
+  import { toCurveArray } from "../../lib/features";
+  import {
+    analyzeCycle,
+    ensureModelLoaded,
+    type LoadProgress,
+  } from "../../lib/inference";
+  import { renderCurveChart } from "../../lib/curveChart";
+  import { buildResultContent } from "../../lib/resultNarrative";
+  import { cachedBytes } from "../../lib/modelCache";
+  import { CYCLE_MAX_DAYS } from "../../lib/constants";
+
+  const $ = <T extends HTMLElement>(sel: string) =>
+    document.querySelector(sel) as T;
+
+  const useTemp = $("#use-temp") as HTMLInputElement;
+  const useLh = $("#use-lh") as HTMLInputElement;
+  const analyzeBtn = $("#analyze-btn") as HTMLButtonElement;
+  const demoBtn = $("#demo-btn") as HTMLButtonElement;
+  const clearBtn = $("#clear-btn") as HTMLButtonElement;
+  const statusEl = $("#model-status") as HTMLParagraphElement;
+  const resultPanel = $("#result-panel") as HTMLElement;
+
+  function syncColumns() {
+    document
+      .querySelectorAll<HTMLElement>(".col-temp")
+      .forEach((el) => el.classList.toggle("hidden", !useTemp.checked));
+    document
+      .querySelectorAll<HTMLElement>(".col-lh")
+      .forEach((el) => el.classList.toggle("hidden", !useLh.checked));
+  }
+  useTemp.addEventListener("change", syncColumns);
+  useLh.addEventListener("change", syncColumns);
+  syncColumns();
+
+  function readColumn(kind: "temp" | "lh"): (number | null)[] {
+    const arr: (number | null)[] = new Array(CYCLE_MAX_DAYS).fill(null);
+    document
+      .querySelectorAll<HTMLInputElement>(`input[data-kind="${kind}"]`)
+      .forEach((inp) => {
+        const day = Number(inp.dataset.day);
+        const v = inp.value.trim().replace(",", ".");
+        if (v !== "") {
+          const num = Number(v);
+          if (Number.isFinite(num)) arr[day] = num;
+        }
+      });
+    return arr;
+  }
+
+  function setStatus(msg: string) {
+    statusEl.textContent = msg;
+  }
+
+  // Warm the model in the background as soon as the page is idle, so the first
+  // analysis feels instant. Caching means this only downloads once, ever.
+  (window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 800)))(
+    () => {
+      ensureModelLoaded((p: LoadProgress) => reportLoad(p)).then(
+        async () => {
+          const bytes = await cachedBytes();
+          if (bytes > 0)
+            setStatus(
+              `Modèle prêt et mis en cache (${(bytes / 1e6).toFixed(1)} Mo). Vos analyses suivantes seront instantanées et hors-ligne.`,
+            );
+        },
+        () => setStatus(""),
+      );
+    },
+  );
+
+  function reportLoad(p: LoadProgress) {
+    if (p.phase === "ready") return;
+    if (p.file && p.file.total > 0) {
+      const pct = Math.round((p.file.loaded / p.file.total) * 100);
+      setStatus(`Chargement du modèle… ${pct}%`);
+    } else {
+      setStatus("Préparation du modèle…");
+    }
+  }
+
+  demoBtn.addEventListener("click", () => {
+    // A clean ovulatory cycle: low follicular, clear rise at ~J15, stable plateau.
+    const temps = [
+      36.4, 36.35, 36.42, 36.38, 36.41, 36.37, 36.4, 36.36, 36.39, 36.35,
+      36.41, 36.34, 36.3, 36.28, 36.55, 36.72, 36.78, 36.8, 36.79, 36.82,
+      36.81, 36.83, 36.8, 36.79, 36.81, 36.78, 36.77, 36.62, null, null, null,
+      null, null, null, null,
+    ];
+    const lh = new Array(CYCLE_MAX_DAYS).fill(null) as (number | null)[];
+    lh[12] = 1.1;
+    lh[13] = 2.6;
+    lh[14] = 1.4;
+    useLh.checked = true;
+    syncColumns();
+    document
+      .querySelectorAll<HTMLInputElement>('input[data-kind="temp"]')
+      .forEach((inp) => {
+        const day = Number(inp.dataset.day);
+        inp.value = temps[day] == null ? "" : String(temps[day]);
+      });
+    document
+      .querySelectorAll<HTMLInputElement>('input[data-kind="lh"]')
+      .forEach((inp) => {
+        const day = Number(inp.dataset.day);
+        inp.value = lh[day] == null ? "" : String(lh[day]);
+      });
+  });
+
+  clearBtn.addEventListener("click", () => {
+    document
+      .querySelectorAll<HTMLInputElement>("input[data-kind]")
+      .forEach((inp) => (inp.value = ""));
+    resultPanel.hidden = true;
+    resultPanel.innerHTML = "";
+  });
+
+  // Screenshot digitizer → fill the temperature and/or LH columns. The user
+  // always lands back in the editable table to verify/correct the recovered
+  // values before analysing (human-in-the-loop), which is what makes the CV
+  // approach robust on busy, dual-axis charts.
+  document.addEventListener("fertiluna:digitized", (ev) => {
+    const detail = (
+      ev as CustomEvent<{
+        temps: (number | null)[] | null;
+        lh: (number | null)[] | null;
+      }>
+    ).detail;
+    if (!detail) return;
+
+    let filled = 0;
+    if (detail.temps) {
+      useTemp.checked = true;
+      const temps = detail.temps;
+      document
+        .querySelectorAll<HTMLInputElement>('input[data-kind="temp"]')
+        .forEach((inp) => {
+          const day = Number(inp.dataset.day);
+          const v = temps[day];
+          inp.value = v == null ? "" : String(v);
+          if (v != null) filled++;
+        });
+    }
+    if (detail.lh) {
+      useLh.checked = true;
+      const lh = detail.lh;
+      document
+        .querySelectorAll<HTMLInputElement>('input[data-kind="lh"]')
+        .forEach((inp) => {
+          const day = Number(inp.dataset.day);
+          const v = lh[day];
+          inp.value = v == null ? "" : String(v);
+          if (v != null) filled++;
+        });
+    }
+    syncColumns();
+    setStatus(
+      `${filled} valeurs importées depuis l'image. Vérifiez-les puis lancez l'analyse.`,
+    );
+    $("#input-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  analyzeBtn.addEventListener("click", async () => {
+    const tempsRaw = useTemp.checked
+      ? readColumn("temp")
+      : new Array(CYCLE_MAX_DAYS).fill(null);
+    const lhRaw = useLh.checked
+      ? readColumn("lh")
+      : new Array(CYCLE_MAX_DAYS).fill(null);
+
+    const filled =
+      tempsRaw.filter((v) => v != null).length +
+      lhRaw.filter((v) => v != null).length;
+    if (filled < 5) {
+      setStatus(
+        "Saisissez au moins quelques jours de données pour lancer l'analyse.",
+      );
+      return;
+    }
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = "Analyse en cours…";
+    try {
+      await ensureModelLoaded((p) => reportLoad(p));
+      const temps = toCurveArray(tempsRaw);
+      const lh = toCurveArray(lhRaw);
+      const analysis = await analyzeCycle(temps, lh);
+      renderResult(tempsRaw, lhRaw, analysis);
+      setStatus("");
+    } catch (err) {
+      console.error(err);
+      setStatus(
+        "Une erreur est survenue pendant l'analyse. Réessayez dans un instant.",
+      );
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = "Analyser mon cycle →";
+    }
+  });
+
+  function esc(s: string): string {
+    const d = document.createElement("div");
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function renderResult(
+    tempsRaw: (number | null)[],
+    lhRaw: (number | null)[],
+    analysis: Awaited<ReturnType<typeof analyzeCycle>>,
+  ) {
+    const c = buildResultContent(analysis);
+    const chart = renderCurveChart({
+      temps: tempsRaw,
+      lh: lhRaw,
+      ovulationDay: analysis.derived.estimatedOvulationDay,
+    });
+
+    const chips = c.chips
+      .map(
+        (chip) => `
+        <div class="chip" ${chip.hint ? `title="${esc(chip.hint)}"` : ""}>
+          <span class="chip-val">${esc(chip.value)}</span>
+          <span class="chip-label">${esc(chip.label)}</span>
+        </div>`,
+      )
+      .join("");
+
+    // Inject an inline ad slot after the 2nd narrative section for engagement.
+    const narrative = c.narrative
+      .map(
+        (n, i) => `
+        <div class="narr-section">
+          <h3>${esc(n.heading)}</h3>
+          <p>${esc(n.body)}</p>
+        </div>
+        ${i === 1 ? '<aside class="ad-slot ad-inline" aria-hidden="true">Espace publicitaire</aside>' : ""}`,
+      )
+      .join("");
+
+    const doctorQ = c.doctorQuestions.length
+      ? `<div class="doctor-card">
+           <h3>&#129658; À demander à votre médecin</h3>
+           <ul>${c.doctorQuestions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul>
+         </div>`
+      : "";
+
+    const glossary = c.glossary.length
+      ? `<details class="glossary">
+           <summary>Glossaire — comprendre les termes</summary>
+           <dl>${c.glossary
+             .map(
+               (g) =>
+                 `<dt>${esc(g.term)}</dt><dd>${esc(g.definition)}</dd>`,
+             )
+             .join("")}</dl>
+         </details>`
+      : "";
+
+    const oodNote = c.oodNote
+      ? `<p class="ood-note">${esc(c.oodNote)}</p>`
+      : "";
+
+    const confidenceBadge = c.confident
+      ? `<span class="conf-badge ok">Confiance ${c.confidencePct}%</span>`
+      : `<span class="conf-badge low">Confiance limitée (${c.confidencePct}%)</span>`;
+
+    resultPanel.innerHTML = `
+      <div class="result-verdict card tone-${c.tone}">
+        <div class="verdict-head">
+          <h2>${esc(c.title)}</h2>
+          ${confidenceBadge}
+        </div>
+        <p class="verdict-summary">${esc(c.summary)}</p>
+        ${oodNote}
+      </div>
+
+      <div class="card chart-card">
+        ${chart}
+        <p class="chart-legend">
+          <span class="dot rose"></span> Phase folliculaire
+          <span class="dot purple"></span> Phase lutéale
+          <span class="dot amber"></span> Pic LH
+        </p>
+      </div>
+
+      ${chips ? `<div class="chips">${chips}</div>` : ""}
+
+      <div class="narrative">${narrative}</div>
+
+      ${doctorQ}
+      ${glossary}
+
+      <div class="result-footer disclaimer">
+        <span aria-hidden="true">&#9888;&#65039;</span>
+        <span>Cette analyse est indicative. En cas de doute ou de difficulté à concevoir, parlez-en à votre médecin ou sage-femme.</span>
+      </div>
+    `;
+    resultPanel.hidden = false;
+    resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+</script>
+
+<style>
+  .tool-main {
+    padding: 32px 0 8px;
+    min-width: 0;
+  }
+  .tool-head {
+    margin-bottom: 16px;
+  }
+  .tool-head h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+  }
+  .disclaimer {
+    margin: 16px 0;
+  }
+
+  .input-card {
+    margin-top: 12px;
+  }
+  .data-toggle {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 16px;
+  }
+  .chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .table-scroll {
+    max-height: 360px;
+    overflow: auto;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .cycle-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .cycle-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--purple-soft);
+    color: var(--purple);
+    font-size: 0.8rem;
+    text-align: left;
+    padding: 8px 12px;
+    z-index: 1;
+  }
+  .cycle-table tbody th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 4px 12px;
+    width: 56px;
+  }
+  .cycle-table td {
+    padding: 3px 8px;
+  }
+  .cycle-table tr:nth-child(even) {
+    background: #fcfaff;
+  }
+  .cycle-table input {
+    width: 88px;
+    padding: 7px 9px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+  }
+  .cycle-table input:focus {
+    outline: 2px solid var(--rose);
+    border-color: var(--rose);
+  }
+  .hidden {
+    display: none;
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  .btn-text {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font: inherit;
+    text-decoration: underline;
+  }
+  .model-status {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    min-height: 1.2em;
+  }
+
+  /* ── Result ── */
+  .result-panel {
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .result-verdict {
+    border-left: 6px solid var(--purple);
+  }
+  .tone-positive {
+    border-left-color: var(--positive);
+    background: linear-gradient(180deg, var(--positive-soft), #fff 60%);
+  }
+  .tone-caution {
+    border-left-color: var(--caution);
+    background: linear-gradient(180deg, var(--caution-soft), #fff 60%);
+  }
+  .tone-info {
+    border-left-color: var(--purple);
+    background: linear-gradient(180deg, var(--info-soft), #fff 60%);
+  }
+  .verdict-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .verdict-head h2 {
+    margin: 0;
+  }
+  .verdict-summary {
+    font-size: 1.08rem;
+    margin: 8px 0 0;
+  }
+  .ood-note {
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: var(--caution);
+  }
+  .conf-badge {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+  .conf-badge.ok {
+    background: var(--positive-soft);
+    color: var(--positive);
+  }
+  .conf-badge.low {
+    background: var(--caution-soft);
+    color: var(--caution);
+  }
+
+  .chart-card :global(.curve-svg) {
+    width: 100%;
+    height: auto;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 6px 0 0;
+    flex-wrap: wrap;
+  }
+  .chart-legend .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .dot.rose {
+    background: var(--rose);
+  }
+  .dot.purple {
+    background: var(--purple);
+  }
+  .dot.amber {
+    background: #f5a623;
+  }
+
+  .chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+  }
+  .chip {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: var(--shadow);
+  }
+  .chip-val {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--rose-dark);
+  }
+  .chip-label {
+    font-size: 0.82rem;
+    color: var(--muted);
+  }
+
+  .narrative {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .narr-section {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .narr-section h3 {
+    color: var(--purple);
+    font-size: 1.05rem;
+  }
+  .narr-section p {
+    margin: 0;
+  }
+
+  .doctor-card {
+    background: var(--purple-soft);
+    border: 1px solid #e3d8ee;
+    border-radius: 14px;
+    padding: 18px 22px;
+  }
+  .doctor-card h3 {
+    margin-top: 0;
+    color: var(--purple);
+  }
+  .doctor-card ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .doctor-card li {
+    margin: 6px 0;
+  }
+
+  .glossary {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+  .glossary summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--rose-dark);
+  }
+  .glossary dl {
+    margin: 12px 0 0;
+  }
+  .glossary dt {
+    font-weight: 700;
+    text-transform: capitalize;
+    margin-top: 10px;
+  }
+  .glossary dd {
+    margin: 2px 0 0;
+    color: var(--muted);
+  }
+</style>
