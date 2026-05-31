@@ -176,7 +176,7 @@ artifacts back, and destroys the instance.
 
 ```bash
 # one-time
-pip install --user vastai
+uv pip install vastai
 vastai set api-key <YOUR_API_KEY>
 # Make sure your GitHub SSH key is loaded so the box can clone via -A forwarding:
 ssh-add ~/.ssh/id_ed25519     # or whichever key you push with

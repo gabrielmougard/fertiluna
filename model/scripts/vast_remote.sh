@@ -12,9 +12,15 @@
 #   STYLE             generic | premom | blend
 #   WIDTH             model width (e.g. 3.0)
 #   EPOCHS
-#   BATCH_SIZE
 #   VERSION           artifact suffix (e.g. v1)
-#   WORKERS           optional override; otherwise auto = nproc
+#   WORKERS           dataset render workers; default = nproc (matplotlib-bound,
+#                     scales linearly)
+#
+# Optional overrides — leave unset to let the training script auto-pick from
+# the detected hardware (recommended):
+#   BATCH_SIZE        training batch size (auto-picked from VRAM × width).
+#   TRAIN_WORKERS     DataLoader workers (auto-picked, capped at 16).
+#   LR                learning rate     (auto-scaled linearly from batch_size).
 set -euo pipefail
 
 log() { printf '\n=== [%s] %s ===\n' "$(date -u +%H:%M:%S)" "$*"; }
@@ -28,14 +34,17 @@ log() { printf '\n=== [%s] %s ===\n' "$(date -u +%H:%M:%S)" "$*"; }
 : "${STYLE:=blend}"
 : "${WIDTH:=3.0}"
 : "${EPOCHS:=40}"
-: "${BATCH_SIZE:=128}"
 : "${VERSION:=v1}"
 : "${WORKERS:=$(nproc)}"
+# BATCH_SIZE / TRAIN_WORKERS / LR are intentionally NOT defaulted here — the
+# training script's auto-tuner picks them from detected hardware. Set them
+# in the env (e.g. via vast_run.py --batch-size / --train-workers / --lr)
+# to override.
 : "${WORKDIR:=/workspace}"
 
 log "host info"
 nvidia-smi || true
-echo "CPU cores: $(nproc)   workers: $WORKERS"
+echo "CPU cores: $(nproc)   render workers: $WORKERS   train: auto-tuned"
 echo "Free disk:"; df -h "$WORKDIR" || df -h /
 
 log "install OS deps"
@@ -84,13 +93,22 @@ python -m scripts.build_vision_dataset \
 TRAIN_DIR="data/charts-${STYLE}-${TRAIN_N}-seed${TRAIN_SEED}"
 VAL_DIR="data/charts-${STYLE}-${VAL_N}-seed${VAL_SEED}"
 
-log "train + export (width=$WIDTH epochs=$EPOCHS batch=$BATCH_SIZE)"
+log "train + export (width=$WIDTH epochs=$EPOCHS, auto-tuning batch/workers/lr)"
+# The training script auto-tunes batch_size, num_workers, and lr to the
+# detected hardware and sets PYTORCH_CUDA_ALLOC_CONF / OMP_NUM_THREADS itself.
+# We deliberately pass NEITHER --batch-size NOR --num-workers — auto picks
+# right for this box. To override, set BATCH_SIZE / TRAIN_WORKERS in the env.
+EXTRA_ARGS=()
+if [ -n "${BATCH_SIZE:-}" ];     then EXTRA_ARGS+=(--batch-size   "$BATCH_SIZE"); fi
+if [ -n "${TRAIN_WORKERS:-}" ];  then EXTRA_ARGS+=(--num-workers  "$TRAIN_WORKERS"); fi
+if [ -n "${LR:-}" ];             then EXTRA_ARGS+=(--lr           "$LR"); fi
+
 python -m scripts.train_and_export_vision \
   --train-npz "$TRAIN_DIR" \
   --val-npz   "$VAL_DIR" \
-  --width "$WIDTH" --epochs "$EPOCHS" --batch-size "$BATCH_SIZE" \
-  --num-workers "$WORKERS" \
-  --out artifacts --version "$VERSION"
+  --width "$WIDTH" --epochs "$EPOCHS" \
+  --out artifacts --version "$VERSION" \
+  "${EXTRA_ARGS[@]}"
 
 log "artifacts produced"
 ls -lh artifacts/
