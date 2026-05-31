@@ -41,6 +41,9 @@ class VisionTrainConfig:
     value_loss_weight: float = 5.0
     presence_loss_weight: float = 1.0
     scale_loss_weight: float = 0.5
+    # Print a running-loss line every N training steps so big-epoch runs aren't
+    # blind. 0 disables intra-epoch logging.
+    log_every: int = 200
     # Optional pre-rendered datasets (much faster than on-the-fly rendering).
     train_npz: Optional[str] = None
     val_npz: Optional[str] = None
@@ -239,6 +242,14 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
             sched.step()
             running += loss.item()
             nb += 1
+            if cfg.log_every and (nb % cfg.log_every == 0):
+                rate = nb * cfg.batch_size / max(1e-6, time.time() - t0)
+                steps_per_epoch = max(1, len(train_ds) // cfg.batch_size)
+                print(
+                    f"[vision] epoch {epoch+1} step {nb}/{steps_per_epoch} "
+                    f"loss={running/nb:.4f} ({rate:.0f} img/s)",
+                    flush=True,
+                )
 
         metrics = evaluate(model, val_dl, device)
         dt = time.time() - t0
@@ -248,7 +259,8 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
             f"val_mae={metrics['val_mae_present']:.4f} "
             f"val_f1={metrics['val_presence_f1']:.4f} "
             f"val_scale_acc={metrics['val_scale_acc']:.3f} "
-            f"({dt:.0f}s)"
+            f"({dt:.0f}s)",
+            flush=True,
         )
         history.append({"epoch": epoch + 1, **metrics})
         if metrics["val_mae_present"] < best_mae:

@@ -70,6 +70,8 @@ def main() -> int:
     p.add_argument("--num-workers", type=int, default=4)
     p.add_argument("--train-npz", type=str, default=None)
     p.add_argument("--val-npz", type=str, default=None)
+    p.add_argument("--log-every", type=int, default=200,
+                   help="Print a running-loss line every N training steps (0=off).")
     p.add_argument("--version", type=str, default="v1")
     p.add_argument("--lr", type=float, default=3e-3,
                    help="Max learning rate. Use a much smaller value (e.g. 2e-4) when fine-tuning with --init-ckpt.")
@@ -92,6 +94,7 @@ def main() -> int:
         num_workers=args.num_workers,
         train_npz=args.train_npz,
         val_npz=args.val_npz,
+        log_every=args.log_every,
         checkpoint_path=ckpt,
         init_ckpt=args.init_ckpt,
         freeze_backbone=args.freeze_backbone,
