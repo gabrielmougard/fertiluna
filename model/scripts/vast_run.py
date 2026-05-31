@@ -356,18 +356,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         "STYLE": args.style,
         "WIDTH": str(args.width),
         "EPOCHS": str(args.epochs),
+        "BATCH_SIZE": str(args.batch_size),
         "VERSION": args.version,
     }
-    # Optional overrides — only set if the user explicitly passed them, so the
-    # remote auto-tuner stays in charge by default.
     if args.workers is not None:
         env["WORKERS"] = str(args.workers)
-    if args.train_workers is not None:
-        env["TRAIN_WORKERS"] = str(args.train_workers)
-    if args.batch_size is not None:
-        env["BATCH_SIZE"] = str(args.batch_size)
-    if args.lr is not None:
-        env["LR"] = str(args.lr)
 
     exit_code = run_remote(host, port, env)
 
@@ -454,19 +447,10 @@ def build_parser() -> argparse.ArgumentParser:
     # training
     sp.add_argument("--width", type=float, default=3.0)
     sp.add_argument("--epochs", type=int, default=40)
+    sp.add_argument("--batch-size", type=int, default=128)
     sp.add_argument("--version", default="v1")
-    # batch-size / train-workers / lr default to auto-tune on the box.
-    sp.add_argument("--batch-size", type=int, default=None,
-                    help="Override training batch size (default: auto-picked from "
-                         "VRAM × width by the training script).")
-    sp.add_argument("--lr", type=float, default=None,
-                    help="Override learning rate (default: auto-scaled linearly "
-                         "from chosen batch size).")
     sp.add_argument("--workers", type=int, default=None,
-                    help="Render workers on the box (default: nproc). matplotlib is "
-                         "the bottleneck so this scales linearly with cores.")
-    sp.add_argument("--train-workers", type=int, default=None,
-                    help="Override DataLoader workers (default: auto, capped at 16).")
+                    help="Override remote --workers (default: nproc on the box).")
     # fetch / lifecycle
     sp.add_argument("--fetch-data", action="store_true",
                     help="Also rsync data/ (large — multi-GB .npy memmaps).")
