@@ -14,70 +14,135 @@
     <h2>📷 Importer une capture d'écran</h2>
     <p class="muted">
       Vous avez une courbe dans une autre appli (Inito, Premom, Clearblue,
-      Flo…) ou sur papier&nbsp;? Importez une capture, calibrez les axes en
-      quelques clics, et FertiLuna récupère vos valeurs.
-      <strong>L'image reste sur votre appareil.</strong>
+      Flo…) ou sur papier&nbsp;? Importez une capture et FertiLuna récupère vos
+      valeurs. <strong>L'image reste sur votre appareil.</strong>
     </p>
   </div>
 
-  <label class="dz-upload btn btn-ghost">
-    Choisir une image
-    <input type="file" accept="image/*" id="dz-file" hidden />
-  </label>
+  <div class="dz-mode" role="tablist" aria-label="Mode d'extraction">
+    <button type="button" id="mode-auto" class="dz-modebtn active">
+      ✨ Extraction auto (IA)
+    </button>
+    <button type="button" id="mode-manual" class="dz-modebtn">
+      🎯 Calibration manuelle
+    </button>
+  </div>
 
-  <div class="dz-when-image">
-    <div class="dz-series" id="dz-series" role="tablist" aria-label="Série à extraire">
-      <span class="dz-series-label">Série :</span>
-      <button type="button" data-series="temp" class="dz-tab active">
-        🌡️ Température (BBT)
-      </button>
-      <button type="button" data-series="lh" class="dz-tab">
-        💧 LH / hormone
-      </button>
-    </div>
+  <!-- ─────────── AUTO (IA) PANEL ─────────── -->
+  <div id="auto-panel" class="dz-panel">
+    <label class="dz-upload btn btn-ghost">
+      Choisir une image
+      <input type="file" accept="image/*" id="auto-file" hidden />
+    </label>
 
-    <ol class="dz-steps muted">
-      <li>Calibrez l'axe des <strong>jours</strong> (2 clics sur la ligne ZT/jour).</li>
-      <li>Calibrez l'axe de <strong>valeurs</strong> de la série choisie — attention, BBT et LH sont souvent sur des axes <strong>opposés</strong>.</li>
-      <li>Cliquez sur la <strong>courbe</strong> de cette série pour prendre sa couleur.</li>
-      <li>Changez de série pour la seconde courbe, ou importez.</li>
-    </ol>
+    <p class="muted dz-hint">
+      Le modèle lit automatiquement les courbes <strong>et détecte l'échelle
+      (°C ou °F)</strong> — vous n'avez rien à saisir. Vérifiez l'aperçu, puis
+      importez ; vous pourrez corriger chaque valeur dans le tableau.
+    </p>
 
-    <p class="dz-prompt" id="dz-prompt" aria-live="polite"></p>
+    <div class="dz-when-image">
+      <div class="dz-stage">
+        <div class="dz-canvas-wrap">
+          <canvas id="auto-canvas"></canvas>
+          <canvas id="auto-overlay"></canvas>
+        </div>
+      </div>
 
-    <div class="dz-stage">
-      <div class="dz-canvas-wrap">
-        <canvas id="dz-canvas"></canvas>
-        <canvas id="dz-overlay"></canvas>
-        <canvas id="dz-loupe" class="dz-loupe"></canvas>
+      <div class="dz-axes">
+        <label class="dz-incl"><input type="checkbox" id="auto-temp-on" /> 🌡️ Température (BBT)</label>
+        <label class="dz-incl"><input type="checkbox" id="auto-lh-on" /> 💧 LH / hormone</label>
+        <span class="dz-scale" id="auto-scale"></span>
+      </div>
+
+      <div class="dz-controls">
+        <button type="button" class="btn btn-primary" id="auto-import" disabled>
+          Importer dans le tableau ↓
+        </button>
       </div>
     </div>
 
-    <div class="dz-controls">
-      <label class="dz-tol">
-        Tolérance couleur
-        <input type="range" id="dz-tol" min="10" max="120" value="45" />
-        <span id="dz-tol-val">45</span>
-      </label>
-      <button type="button" class="btn-text" id="dz-redo">
-        Recalibrer cette série
-      </button>
-      <button type="button" class="btn btn-primary" id="dz-import" disabled>
-        Importer dans le tableau ↓
-      </button>
-    </div>
+    <p class="dz-status muted" id="auto-status" aria-live="polite"></p>
+  </div>
 
-    <p class="dz-status muted" id="dz-status" aria-live="polite"></p>
+  <!-- ─────────── MANUAL PANEL ─────────── -->
+  <div id="manual-panel" class="dz-panel" hidden>
+    <label class="dz-upload btn btn-ghost">
+      Choisir une image
+      <input type="file" accept="image/*" id="dz-file" hidden />
+    </label>
+
+    <div class="dz-when-image">
+      <div class="dz-series" id="dz-series" role="tablist" aria-label="Série à extraire">
+        <span class="dz-series-label">Série :</span>
+        <button type="button" data-series="temp" class="dz-tab active">
+          🌡️ Température (BBT)
+        </button>
+        <button type="button" data-series="lh" class="dz-tab">
+          💧 LH / hormone
+        </button>
+      </div>
+
+      <ol class="dz-steps muted">
+        <li>Calibrez l'axe des <strong>jours</strong> (2 clics sur la ligne ZT/jour).</li>
+        <li>Calibrez l'axe de <strong>valeurs</strong> de la série choisie — attention, BBT et LH sont souvent sur des axes <strong>opposés</strong>.</li>
+        <li>Cliquez sur la <strong>courbe</strong> de cette série pour prendre sa couleur.</li>
+        <li>Changez de série pour la seconde courbe, ou importez.</li>
+      </ol>
+
+      <p class="dz-prompt" id="dz-prompt" aria-live="polite"></p>
+
+      <div class="dz-stage">
+        <div class="dz-canvas-wrap">
+          <canvas id="dz-canvas"></canvas>
+          <canvas id="dz-overlay"></canvas>
+          <canvas id="dz-loupe" class="dz-loupe"></canvas>
+        </div>
+      </div>
+
+      <div class="dz-controls">
+        <label class="dz-tol">
+          Tolérance couleur
+          <input type="range" id="dz-tol" min="10" max="120" value="45" />
+          <span id="dz-tol-val">45</span>
+        </label>
+        <button type="button" class="btn-text" id="dz-redo">
+          Recalibrer cette série
+        </button>
+        <button type="button" class="btn btn-primary" id="dz-import" disabled>
+          Importer dans le tableau ↓
+        </button>
+      </div>
+
+      <p class="dz-status muted" id="dz-status" aria-live="polite"></p>
+    </div>
   </div>
 </section>
 
 <script>
   import { initDigitizer } from "../lib/digitizerUI";
+  import { initAutoExtract } from "../lib/autoExtractUI";
 
   const root = document.getElementById("digitizer") as HTMLElement;
+  const autoPanel = document.getElementById("auto-panel") as HTMLElement;
+  const manualPanel = document.getElementById("manual-panel") as HTMLElement;
+  const modeAuto = document.getElementById("mode-auto") as HTMLButtonElement;
+  const modeManual = document.getElementById("mode-manual") as HTMLButtonElement;
+
+  function showMode(which: "auto" | "manual") {
+    const auto = which === "auto";
+    autoPanel.hidden = !auto;
+    manualPanel.hidden = auto;
+    modeAuto.classList.toggle("active", auto);
+    modeManual.classList.toggle("active", !auto);
+  }
+  modeAuto.addEventListener("click", () => showMode("auto"));
+  modeManual.addEventListener("click", () => showMode("manual"));
+
   if (root) {
+    // Manual calibration controller (fallback / power users).
     initDigitizer({
-      root,
+      root: manualPanel,
       fileInput: document.getElementById("dz-file") as HTMLInputElement,
       canvas: document.getElementById("dz-canvas") as HTMLCanvasElement,
       overlay: document.getElementById("dz-overlay") as HTMLCanvasElement,
@@ -90,8 +155,30 @@
       status: document.getElementById("dz-status") as HTMLElement,
       seriesTabs: document.getElementById("dz-series") as HTMLElement,
     });
+
+    // Auto (IA) controller.
+    initAutoExtract({
+      root: autoPanel,
+      fileInput: document.getElementById("auto-file") as HTMLInputElement,
+      canvas: document.getElementById("auto-canvas") as HTMLCanvasElement,
+      overlay: document.getElementById("auto-overlay") as HTMLCanvasElement,
+      status: document.getElementById("auto-status") as HTMLElement,
+      tempEnable: document.getElementById("auto-temp-on") as HTMLInputElement,
+      tempMin: document.getElementById("auto-temp-min") as HTMLInputElement,
+      tempMax: document.getElementById("auto-temp-max") as HTMLInputElement,
+      lhEnable: document.getElementById("auto-lh-on") as HTMLInputElement,
+      lhMin: document.getElementById("auto-lh-min") as HTMLInputElement,
+      lhMax: document.getElementById("auto-lh-max") as HTMLInputElement,
+      importBtn: document.getElementById("auto-import") as HTMLButtonElement,
+      onUnavailable: (reason) => {
+        const s = document.getElementById("auto-status") as HTMLElement;
+        s.textContent =
+          reason + " Vous pouvez utiliser la calibration manuelle.";
+      },
+    });
   }
 </script>
+
 
 <style>
   .digitizer {
@@ -109,8 +196,70 @@
   .dz-when-image {
     display: none;
   }
-  .digitizer.has-image .dz-when-image {
+  .dz-panel.has-image .dz-when-image {
     display: block;
+  }
+
+  /* mode toggle */
+  .dz-mode {
+    display: flex;
+    gap: 8px;
+    margin: 12px 0;
+  }
+  .dz-modebtn {
+    border: 1.5px solid var(--line);
+    background: #fff;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+  .dz-modebtn.active {
+    border-color: var(--purple);
+    background: var(--purple-soft);
+    color: var(--purple);
+  }
+  .dz-hint {
+    font-size: 0.86rem;
+    margin: 4px 0 10px;
+  }
+
+  /* auto-mode axis inputs */
+  .dz-axes {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+  }
+  .dz-axis {
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .dz-axis legend {
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0 4px;
+  }
+  .dz-axis label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .dz-axis input[type="number"] {
+    width: 76px;
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
   }
 
   .dz-series {

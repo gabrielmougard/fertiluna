@@ -168,6 +168,46 @@ Notes:
 - Inspect the renderer at high resolution:
   `python -m scripts.preview_premom_render --out /tmp/p.png --dpi 300`.
 
+## 1.6b Running on vast.ai (rented CUDA box)
+
+If you don't have a local CUDA GPU, `scripts.vast_run` provisions one on
+[vast.ai](https://vast.ai), runs the dataset + training pipeline, rsyncs the
+artifacts back, and destroys the instance.
+
+```bash
+# one-time
+pip install --user vastai
+vastai set api-key <YOUR_API_KEY>
+# Make sure your GitHub SSH key is loaded so the box can clone via -A forwarding:
+ssh-add ~/.ssh/id_ed25519     # or whichever key you push with
+
+# commit + push your changes first — the box clones from origin
+git push origin HEAD
+
+# fresh from-scratch run matching §1.6 stage 1 (single command):
+python -m scripts.vast_run run \
+    --gpu RTX_4090 --max-dph 0.60 \
+    --train-n 200000 --val-n 20000 --style blend \
+    --width 3.0 --epochs 40 --batch-size 128 --version v1
+```
+
+What it does:
+1. Searches for an offer matching `--gpu`, `--min-cuda`, `--min-disk`, `--max-dph`.
+2. `vastai create instance` on the cheapest match with `pytorch/pytorch:*-cuda12.1-cudnn9-devel`.
+3. Waits for SSH, uploads `scripts/vast_remote.sh`, runs it with **SSH agent
+   forwarding** so the box clones the private repo without a key on disk.
+4. The remote script auto-detects `nproc` for `--workers`, renders both
+   datasets, trains, exports ONNX + manifest to `artifacts/`.
+5. `rsync` pulls `model/artifacts/` back; instance is destroyed.
+
+Useful flags:
+- `--instance <id>` — reuse an existing running box (skip provisioning).
+- `--no-destroy` / `--keep-on-error` — leave the box alive for debugging.
+- `--fetch-data` — also rsync the rendered `data/` directory (multi-GB).
+- `--ref <sha>` — check out a specific commit instead of current HEAD.
+- `python -m scripts.vast_run search --gpu RTX_4090` — preview offers.
+- `python -m scripts.vast_run destroy --instance <id>` — kill a stray box.
+
 ## 1.7 ONNX I/O contract (the browser must match)
 
 | input | outputs |

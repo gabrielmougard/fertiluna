@@ -60,6 +60,7 @@ class ChartSample:
     value: np.ndarray   # (N_SERIES, N_DAYS) in [0,1]
     present: np.ndarray  # (N_SERIES, N_DAYS) {0,1}
     meta: dict
+    bbt_scale: int = 0   # index into constants.BBT_SCALES (0=celsius, 1=fahrenheit)
 
 
 def _series_curves(rng: np.random.Generator) -> tuple[np.ndarray, np.ndarray]:
@@ -259,7 +260,11 @@ def render_chart(rng: np.random.Generator) -> ChartSample:
         "has_temp": bool(has_temp),
         "has_lh": bool(has_lh),
     }
-    return ChartSample(image=img, value=value, present=present, meta=meta)
+    # Generic charts use arbitrary axis ranges that don't match the fixed
+    # C/F conventions, so their scale label is "unknown" (-1) and the scale
+    # loss is masked for them. Only premom-style charts supervise the scale head.
+    return ChartSample(image=img, value=value, present=present, meta=meta,
+                       bbt_scale=-1)
 
 
 # Premom-style renderer
@@ -299,6 +304,45 @@ def render_premom_chart(rng: np.random.Generator,
     py_rng = random.Random(int(rng.integers(0, 2**31 - 1)))
 
     temps_raw, lh_raw = _series_curves(rng)
+
+    # ── partial-width windowing (matches real screenshots) ──────────────────
+    # Real charts show a VARIABLE number of data days, positioned in varied
+    # sub-regions of the plot: data may leave empty "future" space on the RIGHT
+    # (a cycle in progress, real-screen-1), empty space on the LEFT (the visible
+    # window starts mid-cycle), or be densely packed. The v1 renderer always
+    # drew exactly N_DAYS of data left-to-right filling the whole box, so the
+    # model learned a fixed day→x mapping and shifted on real charts.
+    #
+    # Fix: place `n_data` real data days into columns [left_pad, left_pad+n_data)
+    # of an axis that spans `x_capacity` day-slots, with NaN elsewhere:
+    #   - left_pad > 0  → empty space on the left,
+    #   - x_capacity > left_pad+n_data → empty "future" space on the right.
+    # The per-column label contract is unchanged: present columns are exactly the
+    # occupied ones, which the browser collapses left-to-right into table days.
+    n_data = int(py_rng.randint(14, N_DAYS))  # randint inclusive; 14..N_DAYS
+    # left offset: usually 0, but a meaningful fraction start mid-axis.
+    max_left = max(0, N_DAYS - n_data)
+    if py_rng.random() < 0.45 and max_left > 0:
+        left_pad = int(py_rng.randint(1, max_left))
+    else:
+        left_pad = 0
+    # right empty "future" space beyond the data.
+    used = left_pad + n_data
+    if py_rng.random() < 0.5 and used < N_DAYS:
+        x_capacity = int(py_rng.randint(used, N_DAYS))  # randint is inclusive
+    else:
+        x_capacity = used
+    x_capacity = max(used, min(N_DAYS, x_capacity))
+
+    # shift the curves into [left_pad, left_pad+n_data), NaN elsewhere
+    def _window(arr):
+        out = np.full(N_DAYS, np.nan, dtype=np.float64)
+        src = arr[:n_data]
+        out[left_pad:left_pad + len(src)] = src
+        return out
+
+    temps_raw = _window(temps_raw)
+    lh_raw = _window(lh_raw)
 
     # The orange "Ratio" line in Premom is a SHARP LH-test ratio: a low baseline
     # (~0.2-0.4) with a tall narrow spike (1.3-1.9) at the surge, then a fast
@@ -408,7 +452,7 @@ def render_premom_chart(rng: np.random.Generator,
     days = np.arange(1, N_DAYS + 1)
     # small margin on each side so day 1 / day N sit inside the axes, not on the
     # left spine (the references always have a gap before the first point).
-    ax_ratio.set_xlim(0.0, N_DAYS + 1.0)
+    ax_ratio.set_xlim(0.0, x_capacity + 1.0)
     ax_ratio.set_ylim(ratio_lo, ratio_hi)
     ax_level.set_ylim(level_lo, level_hi)
     ax_bbt.set_ylim(bbt_lo, bbt_hi)
@@ -417,7 +461,7 @@ def render_premom_chart(rng: np.random.Generator,
     # point sits in the MIDDLE of two vertical lines (matches Premom). Horizontal
     # gridlines are drawn by the BBT axis below (Premom's grid follows the BBT
     # scale, with an unlabeled line halfway between each labeled tick).
-    for d in range(0, N_DAYS + 2):
+    for d in range(0, x_capacity + 2):
         ax_ratio.axvline(d - 0.5, color=_PREMOM_GRID, linewidth=0.7, zorder=0)
 
     # ── bands ──
@@ -435,11 +479,13 @@ def render_premom_chart(rng: np.random.Generator,
         ax_ratio.axvspan(ov - 1.5, ov + 0.5, color=_PREMOM_FERTILE_PEAK, alpha=0.35, zorder=0)
         fertile_days = set(range(f0, f1 + 1))
         peak_days = {ov - 1, ov}
-    # period band (pink) — early and/or late in the window
+    # period band (pink) — early and/or late in the window. The late band sits
+    # at the right edge of the VISIBLE axis (x_capacity), matching real charts
+    # where a pink "predicted period / pregnancy" band fills the empty future.
     if py_rng.random() < 0.7:
-        p0 = py_rng.randint(N_DAYS - 8, N_DAYS - 3)
-        ax_ratio.axvspan(p0 - 0.5, N_DAYS + 0.5, color=_PREMOM_PERIOD, alpha=0.45, zorder=0)
-        period_days |= set(range(p0, N_DAYS + 1))
+        p0 = py_rng.randint(max(1, x_capacity - 8), max(2, x_capacity - 3))
+        ax_ratio.axvspan(p0 - 0.5, x_capacity + 0.5, color=_PREMOM_PERIOD, alpha=0.45, zorder=0)
+        period_days |= set(range(p0, x_capacity + 1))
     if py_rng.random() < 0.4:
         pe = py_rng.randint(2, 4)
         ax_ratio.axvspan(0.5, pe + 0.5, color=_PREMOM_PERIOD, alpha=0.45, zorder=0)
@@ -453,14 +499,20 @@ def render_premom_chart(rng: np.random.Generator,
     fs = py_rng.uniform(7, 9)
     fs_lh = fs
 
-    def _plot_open(ax, raw, color, z):
+    # Some real charts (esp. the BBT line) are pale / thin / low-contrast — the
+    # v1 model missed those entirely (real-screen-2). Randomly render a series
+    # with reduced alpha + thinner stroke so the model learns faint lines too.
+    line_alpha = py_rng.uniform(0.45, 0.7) if py_rng.random() < 0.25 else 1.0
+
+    def _plot_open(ax, raw, color, z, alpha=None):
         xs = days[~np.isnan(raw)]
         ys = raw[~np.isnan(raw)]
         if xs.size == 0:
             return
-        ax.plot(xs, ys, color=color, linewidth=lw, zorder=z)
+        a = line_alpha if alpha is None else alpha
+        ax.plot(xs, ys, color=color, linewidth=lw, zorder=z, alpha=a)
         ax.plot(xs, ys, "o", color=color, markersize=ms, markerfacecolor="white",
-                markeredgecolor=color, markeredgewidth=1.4, zorder=z + 1)
+                markeredgecolor=color, markeredgewidth=1.4, zorder=z + 1, alpha=a)
 
     # orange Ratio (predicted lh) on the leftmost (ratio) axis
     if has_lh:
@@ -588,7 +640,7 @@ def render_premom_chart(rng: np.random.Generator,
     row_h = (plot_bottom - 0.02) / 6.5
 
     def _xfrac(d):  # d is 1-based day index -> figure x-fraction of that cell
-        return 0.10 + 0.80 * d / (N_DAYS + 1)
+        return 0.10 + 0.80 * d / (x_capacity + 1)
 
     # calendar start
     start_month = py_rng.randint(0, 11)
@@ -636,17 +688,17 @@ def render_premom_chart(rng: np.random.Generator,
     # (drawn once per run, behind the numbers), like the references. The capsule
     # is taller than the text and its rounded ends extend past the end numbers,
     # so there is clear padding all around the day numbers inside it.
-    cell_w = 0.80 / (N_DAYS + 1)
+    cell_w = 0.80 / (x_capacity + 1)
     cap_h = row_h * 0.78          # taller than the glyphs -> vertical padding
     for row_y, default_col in ((y, "#555"), (y - row_h, "#9b6fd6")):
         d = 1
-        while d <= N_DAYS:
+        while d <= x_capacity:
             fc, _ = _day_color(d)
             if fc is None:
                 d += 1
                 continue
             run_end = d
-            while run_end + 1 <= N_DAYS and _day_color(run_end + 1)[0] == fc:
+            while run_end + 1 <= x_capacity and _day_color(run_end + 1)[0] == fc:
                 run_end += 1
             # extend the capsule a bit beyond the first/last number centers so the
             # end caps clear the digits (horizontal padding).
@@ -662,7 +714,7 @@ def render_premom_chart(rng: np.random.Generator,
             d = run_end + 1
 
     # numbers on top of the capsules
-    for d in range(1, N_DAYS + 1):
+    for d in range(1, x_capacity + 1):
         xf = _xfrac(d)
         fc, txt_col = _day_color(d)
         fig.text(xf, y, cal_labels[d], fontsize=fs - 1, va="center",
@@ -734,4 +786,5 @@ def render_premom_chart(rng: np.random.Generator,
         "has_lh": bool(has_lh),
         "show_level": bool(show_level),
     }
-    return ChartSample(image=img, value=value, present=present, meta=meta)
+    return ChartSample(image=img, value=value, present=present, meta=meta,
+                       bbt_scale=1 if use_fahrenheit else 0)

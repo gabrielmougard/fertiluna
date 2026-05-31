@@ -191,7 +191,7 @@ export function resampleToDays(
  * central area if detection is inconclusive.
  */
 export function guessPlotRegion(
-  data: Uint8ClampedArray,
+  _data: Uint8ClampedArray,
   width: number,
   height: number,
 ): { x0: number; y0: number; x1: number; y1: number } {

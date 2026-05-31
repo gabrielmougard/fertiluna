@@ -46,6 +46,30 @@ if (!modelOk) {
   );
 }
 
+// 1b. Chart-vision model: model/artifacts/chart-vision-*.{onnx,json} -> public/models/
+//     Optional — only copied if present (it's produced by a separate training run).
+const visionFiles = [
+  `chart-vision-${MODEL_VERSION}.onnx`,
+  `chart-vision-manifest-${MODEL_VERSION}.json`,
+];
+let visionPresent = true;
+for (const f of visionFiles) {
+  if (!existsSync(join(artifacts, f)) && !existsSync(join(modelsOut, f))) {
+    visionPresent = false;
+  }
+}
+if (visionPresent) {
+  for (const f of visionFiles) {
+    const src = join(artifacts, f);
+    if (existsSync(src)) copy(src, join(modelsOut, f));
+  }
+} else {
+  console.log(
+    "[sync-assets] chart-vision model not found in model/artifacts — " +
+      "skipping (auto-extract IA mode will be unavailable until trained).",
+  );
+}
+
 // 2. ORT WASM runtime: NOTHING to copy.
 //    We import `onnxruntime-web/wasm` (bundle build); Vite emits the `.wasm`
 //    into _astro/ with a content hash and rewrites the reference natively, so

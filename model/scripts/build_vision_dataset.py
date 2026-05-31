@@ -40,7 +40,8 @@ def _render_one(args: tuple[int, str]):
     rng = np.random.default_rng(seed)
     s = render_premom_chart(rng) if style == "premom" else render_chart(rng)
     img = np.asarray(s.image, dtype=np.uint8)  # H,W,3
-    return img, s.value.astype(np.float16), s.present.astype(np.float16)
+    return (img, s.value.astype(np.float16), s.present.astype(np.float16),
+            np.int8(s.bbt_scale))
 
 
 def build(out: Path, n: int, seed0: int, workers: int,
@@ -61,6 +62,9 @@ def build(out: Path, n: int, seed0: int, workers: int,
     presents = open_memmap(
         ds_dir / "presents.npy", mode="w+", dtype=np.float16, shape=(n, N_SERIES, N_DAYS)
     )
+    scales = open_memmap(
+        ds_dir / "scales.npy", mode="w+", dtype=np.int8, shape=(n,)
+    )
 
     # Per-sample style assignment (deterministic from seed0).
     rng = np.random.default_rng(seed0)
@@ -73,16 +77,18 @@ def build(out: Path, n: int, seed0: int, workers: int,
 
     done = 0
     with ProcessPoolExecutor(max_workers=workers) as ex:
-        for i, (img, val, pres) in enumerate(ex.map(_render_one, tasks, chunksize=16)):
+        for i, (img, val, pres, sc) in enumerate(ex.map(_render_one, tasks, chunksize=16)):
             images[i] = img
             values[i] = val
             presents[i] = pres
+            scales[i] = sc
             done += 1
             if done % chunk == 0:
                 # Flush this chunk to disk and drop dirty pages so RAM stays flat.
                 images.flush()
                 values.flush()
                 presents.flush()
+                scales.flush()
                 print(f"  rendered {done}/{n} (flushed)")
             elif done % 1000 == 0:
                 print(f"  rendered {done}/{n}")
@@ -90,7 +96,8 @@ def build(out: Path, n: int, seed0: int, workers: int,
     images.flush()
     values.flush()
     presents.flush()
-    del images, values, presents  # close the memmaps
+    scales.flush()
+    del images, values, presents, scales  # close the memmaps
     total = sum(p.stat().st_size for p in ds_dir.glob("*.npy"))
     n_premom = sum(1 for s in styles if s == "premom")
     print(f"[dataset] wrote {ds_dir}/ ({total/1e6:.1f} MB; "

@@ -29,6 +29,8 @@ from .constants import (
     NORM_STD,
     PRESENCE_THRESHOLD,
     SERIES_NAMES,
+    BBT_SCALES,
+    LH_RANGE,
 )
 from .train import VisionTrainResult
 
@@ -54,11 +56,12 @@ def export(result: VisionTrainResult, out_dir: Path, version: str = "v1") -> dic
         dummy,
         str(onnx_path),
         input_names=["image"],
-        output_names=["value", "present"],
+        output_names=["value", "present", "scale"],
         dynamic_axes={
             "image": {0: "batch"},
             "value": {0: "batch"},
             "present": {0: "batch"},
+            "scale": {0: "batch"},
         },
         opset_version=17,
         do_constant_folding=True,
@@ -85,17 +88,20 @@ def export(result: VisionTrainResult, out_dir: Path, version: str = "v1") -> dic
     rng = np.random.default_rng(0)
     x = rng.standard_normal((4, 3, IMG_H, IMG_W)).astype(np.float32)
     with torch.no_grad():
-        tv, tp = model(torch.from_numpy(x))
+        tv, tp, ts = model(torch.from_numpy(x))
     tv = tv.numpy()
     tp = tp.numpy()
+    ts = ts.numpy()
 
     sess = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
-    ov, op = sess.run(["value", "present"], {"image": x})
+    ov, op, os_ = sess.run(["value", "present", "scale"], {"image": x})
     v_diff = float(np.max(np.abs(tv - ov)))
     p_diff = float(np.max(np.abs(tp - op)))
+    s_diff = float(np.max(np.abs(ts - os_)))
     print(f"[export] value  max|torch-onnx| = {v_diff:.6e}")
     print(f"[export] present max|torch-onnx| = {p_diff:.6e}")
-    if max(v_diff, p_diff) > 1e-3:
+    print(f"[export] scale   max|torch-onnx| = {s_diff:.6e}")
+    if max(v_diff, p_diff, s_diff) > 1e-3:
         raise RuntimeError("ONNX vision model diverges from torch")
 
     manifest = {
@@ -108,9 +114,15 @@ def export(result: VisionTrainResult, out_dir: Path, version: str = "v1") -> dic
             "n_series": N_SERIES,
             "series_names": SERIES_NAMES,
             "n_days": N_DAYS,
-            "value": "raw logit; apply sigmoid -> normalized [0,1] within each series' own y-range",
+            "value": "already normalized [0,1] (soft-argmax vertical position); use directly, NO sigmoid",
             "present": "raw logit; apply sigmoid -> probability",
             "presence_threshold": PRESENCE_THRESHOLD,
+            "scale": "BBT-axis class logits; argmax -> index into bbt_scales below",
+            "bbt_scales": [
+                {"label": name, "min": lo, "max": hi}
+                for name, (lo, hi) in BBT_SCALES
+            ],
+            "lh_range": {"min": LH_RANGE[0], "max": LH_RANGE[1]},
         },
         "files": {
             "model": {
@@ -120,7 +132,8 @@ def export(result: VisionTrainResult, out_dir: Path, version: str = "v1") -> dic
             }
         },
         "metrics": result.metrics,
-        "parity": {"value_max_abs_diff": v_diff, "present_max_abs_diff": p_diff},
+        "parity": {"value_max_abs_diff": v_diff, "present_max_abs_diff": p_diff,
+                   "scale_max_abs_diff": s_diff},
     }
     manifest_path = out_dir / f"chart-vision-manifest-{version}.json"
     with open(manifest_path, "w") as f:

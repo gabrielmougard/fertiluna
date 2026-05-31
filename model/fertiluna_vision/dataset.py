@@ -37,7 +37,8 @@ class ChartDataset(Dataset):
         x = _to_tensor(sample.image)
         value = torch.from_numpy(sample.value)      # (S, D)
         present = torch.from_numpy(sample.present)  # (S, D)
-        return x, value, present
+        scale = torch.tensor(sample.bbt_scale, dtype=torch.long)  # -1 if unknown
+        return x, value, present, scale
 
 
 class CachedChartDataset(Dataset):
@@ -61,11 +62,18 @@ class CachedChartDataset(Dataset):
             self.images = np.load(os.path.join(path, "images.npy"), mmap_mode="r")
             self.values = np.load(os.path.join(path, "values.npy"), mmap_mode="r")
             self.presents = np.load(os.path.join(path, "presents.npy"), mmap_mode="r")
+            scales_path = os.path.join(path, "scales.npy")
+            self.scales = (
+                np.load(scales_path, mmap_mode="r")
+                if os.path.exists(scales_path)
+                else None
+            )
         else:
             data = np.load(path)
             self.images = data["images"]      # (N,H,W,3) uint8
             self.values = data["values"]      # (N,S,D) f16
             self.presents = data["presents"]  # (N,S,D) f16
+            self.scales = data["scales"] if "scales" in data else None
         self.augment = augment
 
     def __len__(self) -> int:
@@ -85,4 +93,6 @@ class CachedChartDataset(Dataset):
         x = torch.from_numpy(img.transpose(2, 0, 1).copy()).float()
         value = torch.from_numpy(np.asarray(self.values[idx]).astype(np.float32))
         present = torch.from_numpy(np.asarray(self.presents[idx]).astype(np.float32))
-        return x, value, present
+        sc = int(self.scales[idx]) if self.scales is not None else -1
+        scale = torch.tensor(sc, dtype=torch.long)
+        return x, value, present, scale

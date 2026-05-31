@@ -39,27 +39,50 @@ This repo contains two halves:
    │  modelCache.ts     DexieJS / IndexedDB versioned model cache (sha256-validated)     │
    │  inference.ts      onnxruntime-web: classifier + iforest → CycleAnalysis            │
    │  curveChart.ts     animated SVG curve with ovulation band + LH peaks                │
-   │  curveDigitizer.ts screenshot → per-day values (chart digitization, in-browser)     │
-   │  digitizerUI.ts    interactive calibration controller for the digitizer             │
+   │  curveDigitizer.ts screenshot → per-day values (classic CV, in-browser)             │
+   │  digitizerUI.ts    interactive manual-calibration controller                        │
+   │  visionInference.ts chart-vision CNN: image → normalized per-day BBT/LH (onnxruntime)│
+   │  autoExtractUI.ts  "Extraction auto (IA)" controller (model + axis min/max)         │
    └────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Importing a screenshot (chart digitization)
+## Importing a screenshot (two paths, both 100 % in-browser)
 
-Most users won't type a table — they'll have a screenshot from Flo/Premom/
-Clearblue or a paper chart. `CurveDigitizer.astro` recovers the data
-**entirely in the browser** (WebPlotDigitizer-style), no upload, no server:
+Most users won't type a table — they'll paste a screenshot from
+Inito/Premom/Clearblue/Flo or a paper chart. `CurveDigitizer.astro` offers two
+modes; the recovered values always land in the **editable table** for the user
+to verify/correct before analysis (human-in-the-loop).
 
-1. Upload the image (drawn to a `<canvas>`; the file never leaves the device).
-2. Calibrate the axes with 4 clicks: two day reference points + two temperature
-   reference lines. Human-supplied calibration is what makes extraction reliable
-   across every app's chart style.
+### ✨ Extraction auto (IA) — default
+
+A small chart-vision CNN (`model/fertiluna_vision`, ~4.7M params, ~18 MB ONNX,
+trained on synthetic charts) reads the curves automatically:
+
+1. Upload the image (drawn to canvas; never leaves the device).
+2. `visionInference.ts` resizes to 384×224, ImageNet-normalizes, runs the model
+   via onnxruntime-web, applies sigmoid + presence threshold → normalized [0,1]
+   per-day value + presence for each series (BBT, LH).
+3. The user types only each axis' **min & max** (2 numbers per series) so we can
+   de-normalize to real units. No clicking, no colour-picking, no line-tracing.
+4. Live preview overlays the recovered curve; "Importer" fills the table.
+
+The model is fetched once and cached in IndexedDB (shared DexieJS cache).
+Model metrics: val MAE 0.024 (normalized), presence F1 0.94.
+
+### 🎯 Calibration manuelle — fallback / power users
+
+Classic WebPlotDigitizer-style extraction when the model struggles (unusual
+charts) or for full control:
+
+1. Upload the image (drawn to a `<canvas>`).
+2. Calibrate the axes by click: two day reference points + two value reference
+   lines per series (handles dual-axis charts where BBT and LH are on opposite
+   axes). Human-supplied calibration makes it reliable across every chart style.
 3. Pick the curve colour (one click; auto-suggested via saturation heuristic).
 4. A column-scan finds the curve pixels per x-column, takes their vertical
-   centroid, maps pixel→(day, °C) via the calibration, and resamples to one
+   centroid, maps pixel→(day, value) via the calibration, and resamples to one
    value per cycle day.
-5. The recovered values land in the **editable table**, where the user
-   verifies/corrects them before analysis (human-in-the-loop).
+5. The recovered values land in the **editable table** for verification.
 
 The extraction math (`src/lib/curveDigitizer.ts`) is pure and unit-tested
 (`curveDigitizer.test.ts`) against a synthetically-rendered chart — it recovers
@@ -135,6 +158,7 @@ here, in the browser.
 - [x] Browser ML runtime (onnxruntime-web) + DexieJS versioned cache
 - [x] Outil 1 — analyse simple de courbe (animated result, doctor questions, glossary)
 - [x] Screenshot import — in-browser chart digitization with axis calibration
+- [x] Auto-extract (IA) — chart-vision CNN reads curves; user supplies only axis min/max
 - [ ] Ad integration (slots are reserved in the layout; see `docs/AD_SETUP_GUIDE.md`)
 - [ ] Outils 2–5 (multi-cycle, grossesse, bilan hormonal)
 - [ ] SENSIPLAN expert validation on real annotated curves

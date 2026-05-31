@@ -2,9 +2,8 @@
 
 Losses:
     presence: BCEWithLogits over all (series, day) cells.
-    value:    smooth-L1 (Huber) on the sigmoid of value_logit, masked to the
-              days where a point is actually present (we don't penalize the
-              value of absent days).
+    value:    smooth-L1 (Huber) on the soft-argmax value (already in [0,1]),
+              masked to the days where a point is actually present.
 
 Metrics:
     val_mae_present  — mean abs error of normalized value on present days
@@ -41,6 +40,7 @@ class VisionTrainConfig:
     seed: int = 42
     value_loss_weight: float = 5.0
     presence_loss_weight: float = 1.0
+    scale_loss_weight: float = 0.5
     # Optional pre-rendered datasets (much faster than on-the-fly rendering).
     train_npz: Optional[str] = None
     val_npz: Optional[str] = None
@@ -72,9 +72,9 @@ def _device() -> torch.device:
     return torch.device("cpu")
 
 
-def _masked_value_loss(value_logit, value_gt, present_gt):
-    pred = torch.sigmoid(value_logit)
-    per = F.smooth_l1_loss(pred, value_gt, reduction="none", beta=0.05)
+def _masked_value_loss(value_pred, value_gt, present_gt):
+    # value_pred is already a position in [0,1] (soft-argmax), no sigmoid.
+    per = F.smooth_l1_loss(value_pred, value_gt, reduction="none", beta=0.05)
     mask = present_gt
     denom = mask.sum().clamp_min(1.0)
     return (per * mask).sum() / denom
@@ -86,12 +86,15 @@ def evaluate(model, loader, device) -> dict:
     abs_err_sum = 0.0
     present_count = 0.0
     tp = fp = fn = 0.0
-    for x, value_gt, present_gt in loader:
+    scale_correct = 0.0
+    scale_total = 0.0
+    for x, value_gt, present_gt, scale_gt in loader:
         x = x.to(device)
         value_gt = value_gt.to(device)
         present_gt = present_gt.to(device)
-        value_logit, present_logit = model(x)
-        pred_val = torch.sigmoid(value_logit)
+        scale_gt = scale_gt.to(device)
+        value_pred, present_logit, scale_logit = model(x)
+        pred_val = value_pred  # already in [0,1]
         pred_present = (torch.sigmoid(present_logit) >= PRESENCE_THRESHOLD).float()
 
         m = present_gt
@@ -102,12 +105,21 @@ def evaluate(model, loader, device) -> dict:
         fp += ((pred_present == 1) & (present_gt == 0)).sum().item()
         fn += ((pred_present == 0) & (present_gt == 1)).sum().item()
 
+        # scale accuracy (only over labeled samples, scale_gt >= 0)
+        valid = scale_gt >= 0
+        if valid.any():
+            pred_scale = scale_logit.argmax(dim=1)
+            scale_correct += ((pred_scale == scale_gt) & valid).sum().item()
+            scale_total += valid.sum().item()
+
     mae = abs_err_sum / max(1.0, present_count)
     prec = tp / max(1.0, tp + fp)
     rec = tp / max(1.0, tp + fn)
     f1 = 2 * prec * rec / max(1e-6, prec + rec)
+    scale_acc = scale_correct / max(1.0, scale_total)
     return {"val_mae_present": mae, "val_presence_f1": f1,
-            "presence_precision": prec, "presence_recall": rec}
+            "presence_precision": prec, "presence_recall": rec,
+            "val_scale_acc": scale_acc}
 
 
 def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
@@ -178,6 +190,9 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
     steps = max(1, cfg.epochs * (len(train_ds) // cfg.batch_size))
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg.lr, total_steps=steps)
     bce = nn.BCEWithLogitsLoss()
+    # scale classifier: ignore_index=-1 means generic (arbitrary-axis) charts
+    # contribute no scale gradient — only premom charts supervise the unit.
+    ce_scale = nn.CrossEntropyLoss(ignore_index=-1)
 
     # Mixed precision (CUDA only) — big speedup, negligible accuracy impact.
     scaler = torch.amp.GradScaler("cuda", enabled=use_cuda)
@@ -191,10 +206,11 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
         t0 = time.time()
         running = 0.0
         nb = 0
-        for x, value_gt, present_gt in train_dl:
+        for x, value_gt, present_gt, scale_gt in train_dl:
             x = x.to(device, non_blocking=use_cuda)
             value_gt = value_gt.to(device, non_blocking=use_cuda)
             present_gt = present_gt.to(device, non_blocking=use_cuda)
+            scale_gt = scale_gt.to(device, non_blocking=use_cuda)
 
             opt.zero_grad(set_to_none=True)
             with torch.autocast(
@@ -202,12 +218,19 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
                 dtype=torch.float16,
                 enabled=use_cuda,
             ):
-                value_logit, present_logit = model(x)
-                l_val = _masked_value_loss(value_logit, value_gt, present_gt)
+                value_pred, present_logit, scale_logit = model(x)
+                l_val = _masked_value_loss(value_pred, value_gt, present_gt)
                 l_pres = bce(present_logit, present_gt)
+                # scale CE only over labeled (premom) samples; if a batch has
+                # none, contribute 0 (avoids NaN from all-ignored CE).
+                if (scale_gt >= 0).any():
+                    l_scale = ce_scale(scale_logit, scale_gt)
+                else:
+                    l_scale = present_logit.sum() * 0.0
                 loss = (
                     cfg.value_loss_weight * l_val
                     + cfg.presence_loss_weight * l_pres
+                    + cfg.scale_loss_weight * l_scale
                 )
 
             scaler.scale(loss).backward()
@@ -224,6 +247,7 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
             f"loss={running/max(1,nb):.4f} "
             f"val_mae={metrics['val_mae_present']:.4f} "
             f"val_f1={metrics['val_presence_f1']:.4f} "
+            f"val_scale_acc={metrics['val_scale_acc']:.3f} "
             f"({dt:.0f}s)"
         )
         history.append({"epoch": epoch + 1, **metrics})
