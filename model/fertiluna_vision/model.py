@@ -66,8 +66,10 @@ class ChartVisionNet(nn.Module):
         )
         feat = c(384)
 
-        # Collapse the height dimension to 1 (adaptive), keep width.
-        self.height_pool = nn.AdaptiveAvgPool2d((1, None))
+        # Collapse the height dimension to 1, keep width. We average over the
+        # full (fixed) height in forward() with x.mean(dim=2); this is identical
+        # to AdaptiveAvgPool2d((1, None)) but, unlike adaptive pooling with a
+        # dynamic output size, exports cleanly to ONNX.
 
         # A small 1D refinement along width, then project width -> N_DAYS.
         self.width_refine = nn.Sequential(
@@ -87,8 +89,7 @@ class ChartVisionNet(nn.Module):
         # x: (B,3,H,W)
         x = self.stem(x)
         x = self.blocks(x)            # (B, C, h, w)
-        x = self.height_pool(x)       # (B, C, 1, w)
-        x = x.squeeze(2)              # (B, C, w)
+        x = x.mean(dim=2)             # collapse height -> (B, C, w)
         x = self.width_refine(x)      # (B, C, w)
         # resample width -> N_DAYS
         x = F.interpolate(x, size=N_DAYS, mode="linear", align_corners=False)
