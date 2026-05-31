@@ -71,6 +71,12 @@ def main() -> int:
     p.add_argument("--train-npz", type=str, default=None)
     p.add_argument("--val-npz", type=str, default=None)
     p.add_argument("--version", type=str, default="v1")
+    p.add_argument("--lr", type=float, default=3e-3,
+                   help="Max learning rate. Use a much smaller value (e.g. 2e-4) when fine-tuning with --init-ckpt.")
+    p.add_argument("--init-ckpt", type=str, default=None,
+                   help="Fine-tune: load weights from this .ckpt instead of random init (width must match).")
+    p.add_argument("--freeze-backbone", action="store_true",
+                   help="Freeze the conv backbone; train only width_refine + heads (fast retarget).")
     args = p.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -82,10 +88,13 @@ def main() -> int:
         epochs=args.epochs,
         batch_size=args.batch_size,
         width=args.width,
+        lr=args.lr,
         num_workers=args.num_workers,
         train_npz=args.train_npz,
         val_npz=args.val_npz,
         checkpoint_path=ckpt,
+        init_ckpt=args.init_ckpt,
+        freeze_backbone=args.freeze_backbone,
     )
     result = train(cfg)
 

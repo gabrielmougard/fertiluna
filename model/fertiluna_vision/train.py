@@ -47,6 +47,13 @@ class VisionTrainConfig:
     # If set, the best weights are checkpointed here after every improvement so
     # a crash during DataLoader teardown can't lose the trained model.
     checkpoint_path: Optional[str] = None
+    # Fine-tuning: start from these weights instead of random init. The model
+    # width must match the checkpoint's width.
+    init_ckpt: Optional[str] = None
+    # If True, freeze the conv backbone (stem + blocks) so only width_refine and
+    # the value/present heads adapt — fastest, safest way to retarget a trained
+    # model to a new chart style without forgetting learned features.
+    freeze_backbone: bool = False
 
 
 @dataclass
@@ -143,7 +150,31 @@ def train(cfg: Optional[VisionTrainConfig] = None) -> VisionTrainResult:
     n_params = count_params(model)
     print(f"[vision] params: {n_params:,} ({n_params/1e6:.2f}M)")
 
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    if cfg.init_ckpt:
+        blob = torch.load(cfg.init_ckpt, map_location=device, weights_only=False)
+        ckpt_width = blob.get("width")
+        if ckpt_width is not None and abs(float(ckpt_width) - cfg.width) > 1e-6:
+            raise ValueError(
+                f"--init-ckpt width {ckpt_width} != --width {cfg.width}; "
+                "they must match to load the weights."
+            )
+        model.load_state_dict(blob["state_dict"])
+        print(f"[vision] initialized from {cfg.init_ckpt} "
+              f"(base val_mae={blob.get('best_val_mae')})")
+
+    if cfg.freeze_backbone:
+        frozen = 0
+        for p in model.stem.parameters():
+            p.requires_grad_(False)
+            frozen += p.numel()
+        for p in model.blocks.parameters():
+            p.requires_grad_(False)
+            frozen += p.numel()
+        print(f"[vision] froze backbone (stem+blocks): {frozen:,} params "
+              "— only width_refine + heads will train")
+
+    trainable = [p for p in model.parameters() if p.requires_grad]
+    opt = torch.optim.AdamW(trainable, lr=cfg.lr, weight_decay=cfg.weight_decay)
     steps = max(1, cfg.epochs * (len(train_ds) // cfg.batch_size))
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=cfg.lr, total_steps=steps)
     bce = nn.BCEWithLogitsLoss()

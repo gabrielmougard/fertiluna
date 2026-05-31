@@ -16,6 +16,10 @@ hold the whole set in RAM. Pass the directory to --train-npz / --val-npz.
 
 Usage:
     python -m scripts.build_vision_dataset --out data --n 30000 --workers 8
+    # Premom-styled charts:
+    python -m scripts.build_vision_dataset --out data --n 40000 --style premom
+    # Blend (default 70% premom + 30% generic) for fine-tuning robustness:
+    python -m scripts.build_vision_dataset --out data --n 40000 --style blend
 """
 
 from __future__ import annotations
@@ -28,18 +32,21 @@ import numpy as np
 from numpy.lib.format import open_memmap
 
 from fertiluna_vision.constants import IMG_H, IMG_W, N_DAYS, N_SERIES
-from fertiluna_vision.render import render_chart
+from fertiluna_vision.render import render_chart, render_premom_chart
 
 
-def _render_one(seed: int):
+def _render_one(args: tuple[int, str]):
+    seed, style = args
     rng = np.random.default_rng(seed)
-    s = render_chart(rng)
+    s = render_premom_chart(rng) if style == "premom" else render_chart(rng)
     img = np.asarray(s.image, dtype=np.uint8)  # H,W,3
     return img, s.value.astype(np.float16), s.present.astype(np.float16)
 
 
-def build(out: Path, n: int, seed0: int, workers: int, chunk: int = 20_000) -> None:
-    ds_dir = out / f"charts-{n}-seed{seed0}"
+def build(out: Path, n: int, seed0: int, workers: int,
+          style: str = "generic", premom_frac: float = 0.7,
+          chunk: int = 20_000) -> None:
+    ds_dir = out / f"charts-{style}-{n}-seed{seed0}"
     ds_dir.mkdir(parents=True, exist_ok=True)
 
     # Memory-mapped output arrays: written straight to disk, so peak RAM is only
@@ -55,10 +62,18 @@ def build(out: Path, n: int, seed0: int, workers: int, chunk: int = 20_000) -> N
         ds_dir / "presents.npy", mode="w+", dtype=np.float16, shape=(n, N_SERIES, N_DAYS)
     )
 
-    seeds = [seed0 * 7_000_003 + i for i in range(n)]
+    # Per-sample style assignment (deterministic from seed0).
+    rng = np.random.default_rng(seed0)
+    if style == "blend":
+        is_premom = rng.random(n) < premom_frac
+        styles = ["premom" if b else "generic" for b in is_premom]
+    else:
+        styles = [style] * n
+    tasks = [(seed0 * 7_000_003 + i, styles[i]) for i in range(n)]
+
     done = 0
     with ProcessPoolExecutor(max_workers=workers) as ex:
-        for i, (img, val, pres) in enumerate(ex.map(_render_one, seeds, chunksize=16)):
+        for i, (img, val, pres) in enumerate(ex.map(_render_one, tasks, chunksize=16)):
             images[i] = img
             values[i] = val
             presents[i] = pres
@@ -77,7 +92,9 @@ def build(out: Path, n: int, seed0: int, workers: int, chunk: int = 20_000) -> N
     presents.flush()
     del images, values, presents  # close the memmaps
     total = sum(p.stat().st_size for p in ds_dir.glob("*.npy"))
-    print(f"[dataset] wrote {ds_dir}/ ({total/1e6:.1f} MB)")
+    n_premom = sum(1 for s in styles if s == "premom")
+    print(f"[dataset] wrote {ds_dir}/ ({total/1e6:.1f} MB; "
+          f"{n_premom} premom / {n - n_premom} generic)")
 
 
 def main() -> int:
@@ -86,6 +103,10 @@ def main() -> int:
     p.add_argument("--n", type=int, default=30_000)
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--workers", type=int, default=8)
+    p.add_argument("--style", choices=["generic", "premom", "blend"], default="generic",
+                   help="Chart style: generic matplotlib, Premom-app look, or a blend.")
+    p.add_argument("--premom-frac", type=float, default=0.7,
+                   help="Fraction of Premom charts when --style blend (rest generic).")
     p.add_argument(
         "--chunk",
         type=int,
@@ -93,7 +114,8 @@ def main() -> int:
         help="Flush memmaps to disk every CHUNK samples to keep RAM flat.",
     )
     args = p.parse_args()
-    build(args.out, args.n, args.seed, args.workers, args.chunk)
+    build(args.out, args.n, args.seed, args.workers,
+          style=args.style, premom_frac=args.premom_frac, chunk=args.chunk)
     return 0
 
 

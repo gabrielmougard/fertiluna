@@ -1,0 +1,117 @@
+{
+  "n_params": 4729540,
+  "best_val_mae_present": 0.02383628591050494,
+  "final": {
+    "val_mae_present": 0.02383628591050494,
+    "val_presence_f1": 0.9428458986900544,
+    "presence_precision": 0.9421784759208072,
+    "presence_recall": 0.9435142677108651
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "val_mae_present": 0.08379346606761962,
+      "val_presence_f1": 0.7168093893292035,
+      "presence_precision": 0.7255340402643308,
+      "presence_recall": 0.7082920754943439
+    },
+    {
+      "epoch": 2,
+      "val_mae_present": 0.06215861475563902,
+      "val_presence_f1": 0.7727536476926447,
+      "presence_precision": 0.7921843608430176,
+      "presence_recall": 0.7542533081285444
+    },
+    {
+      "epoch": 3,
+      "val_mae_present": 0.05061543878843801,
+      "val_presence_f1": 0.8199464550256489,
+      "presence_precision": 0.8327364146199961,
+      "presence_recall": 0.8075434332523179
+    },
+    {
+      "epoch": 4,
+      "val_mae_present": 0.04161678065338533,
+      "val_presence_f1": 0.8619219292000545,
+      "presence_precision": 0.8703196696237382,
+      "presence_recall": 0.8536847000930177
+    },
+    {
+      "epoch": 5,
+      "val_mae_present": 0.035365416607519226,
+      "val_presence_f1": 0.892506943583152,
+      "presence_precision": 0.8943320905359093,
+      "presence_recall": 0.8906892309538812
+    },
+    {
+      "epoch": 6,
+      "val_mae_present": 0.03129464903869913,
+      "val_presence_f1": 0.9124965870115685,
+      "presence_precision": 0.9099609855803301,
+      "presence_recall": 0.9150463588081735
+    },
+    {
+      "epoch": 7,
+      "val_mae_present": 0.028587488639929524,
+      "val_presence_f1": 0.9240943608783361,
+      "presence_precision": 0.922123708722055,
+      "presence_recall": 0.9260734539562517
+    },
+    {
+      "epoch": 8,
+      "val_mae_present": 0.026742526019557056,
+      "val_presence_f1": 0.931750630900084,
+      "presence_precision": 0.9287678788375681,
+      "presence_recall": 0.934752602994569
+    },
+    {
+      "epoch": 9,
+      "val_mae_present": 0.025567757577919296,
+      "val_presence_f1": 0.9363738654264495,
+      "presence_precision": 0.9363598175708113,
+      "presence_recall": 0.9363879137036036
+    },
+    {
+      "epoch": 10,
+      "val_mae_present": 0.02487485424593115,
+      "val_presence_f1": 0.939355506859184,
+      "presence_precision": 0.9397504429562449,
+      "presence_recall": 0.9389609025714886
+    },
+    {
+      "epoch": 11,
+      "val_mae_present": 0.024358277710464116,
+      "val_presence_f1": 0.94093868457929,
+      "presence_precision": 0.9424789084313593,
+      "presence_recall": 0.9394034866624659
+    },
+    {
+      "epoch": 12,
+      "val_mae_present": 0.02408239315433693,
+      "val_presence_f1": 0.942022782395831,
+      "presence_precision": 0.9429786978156617,
+      "presence_recall": 0.9410688030725838
+    },
+    {
+      "epoch": 13,
+      "val_mae_present": 0.023927780733924927,
+      "val_presence_f1": 0.9426188866351138,
+      "presence_precision": 0.9440231130371975,
+      "presence_recall": 0.9412188315779998
+    },
+    {
+      "epoch": 14,
+      "val_mae_present": 0.02391862584536814,
+      "val_presence_f1": 0.9426231662580211,
+      "presence_precision": 0.9436471481517678,
+      "presence_recall": 0.9416014042668107
+    },
+    {
+      "epoch": 15,
+      "val_mae_present": 0.02383628591050494,
+      "val_presence_f1": 0.9428458986900544,
+      "presence_precision": 0.9421784759208072,
+      "presence_recall": 0.9435142677108651
+    }
+  ]
+}
