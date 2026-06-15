@@ -1,0 +1,7 @@
+# Files in the asset directory (dist/) that wrangler must NOT upload as public
+# static assets. These are the Astro Cloudflare adapter's server-side worker
+# internals — uploading them would expose server code and break the deploy.
+_worker.js
+_routes.json
+.assetsignore
+.DS_Store
