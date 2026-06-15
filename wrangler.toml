@@ -5,6 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 # Astro's Cloudflare adapter emits the worker + static assets into ./dist.
 main = "./dist/_worker.js/index.js"
 
+[observability]
+enabled = true
+head_sampling_rate = 1.0
+
 # Production custom domains. FR root + EN alias both point at THIS worker.
 # Uncomment once BOTH zones are added to your Cloudflare account (otherwise
 # `wrangler deploy` errors trying to provision a domain it can't see). When

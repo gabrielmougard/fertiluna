@@ -1,0 +1,17 @@
+# Terraform state can contain secrets — never commit it (use a remote backend).
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Local provider cache + CLI overrides.
+.terraform/
+.terraform.tfstate.lock.info
+*_override.tf
+*_override.tf.json
+override.tf
+override.tf.json
+
+# .terraform.lock.hcl IS committed (pins provider versions) — do not ignore it.
+# terraform.tfvars IS committed but git-crypt-encrypted (see .gitattributes).

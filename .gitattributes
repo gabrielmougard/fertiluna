@@ -1,0 +1,7 @@
+# git-crypt: transparently encrypt Terraform secret var files at rest.
+# Anyone without the git-crypt key sees ciphertext; collaborators run
+# `git-crypt unlock <key>` (or use a GPG-shared key) to work with plaintext.
+terraform/terraform.tfvars filter=git-crypt diff=git-crypt
+
+# Local Cloudflare/dev secrets, if ever committed, must also be encrypted.
+.dev.vars filter=git-crypt diff=git-crypt

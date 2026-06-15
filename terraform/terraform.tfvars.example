@@ -1,0 +1,11 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is git-crypt encrypted;
+# THIS .example file is plaintext (placeholders only — never put real secrets here).
+cloudflare_api_token  = "<cloudflare-api-token>"   # Workers Scripts:Edit + zone DNS:Edit / Zone:Read
+cloudflare_account_id = "<account-id>"
+cloudflare_zone_id    = "<zone-id-for-fertiluna.com>"
+
+cloudflare_environment = "production"
+domain                 = "fertiluna.com"
+worker_name            = "fertiluna"   # must match `name` in wrangler.toml
+
+enable_www_redirect = true
