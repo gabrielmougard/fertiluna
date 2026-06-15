@@ -53,6 +53,7 @@ const homeHref = isEN ? "/en/" : "/";
 const langQ = isEN ? "?lang=en" : "";
 const toolHref = `/outils/analyse-courbe${langQ}`;
 const aboutHref = `/a-propos${langQ}`;
+const privacyHref = `/confidentialite${langQ}`;
 
 // ── SEO: canonical + hreflang alternates ────────────────────────────────────
 const siteOrigin = Astro.site?.origin ?? ORIGIN;
@@ -70,6 +71,12 @@ function alternates(p: string): Alt {
     return {
       fr: `${ORIGIN}/outils/analyse-courbe`,
       en: `${ORIGIN}/outils/analyse-courbe?lang=en`,
+    };
+  }
+  if (p.startsWith("/confidentialite")) {
+    return {
+      fr: `${ORIGIN}/confidentialite`,
+      en: `${ORIGIN}/confidentialite?lang=en`,
     };
   }
   // FR-only pages (e.g. /a-propos): only an FR alternate.
@@ -252,6 +259,9 @@ else if (jsonLd) ldGraph.push(jsonLd);
         <p class="muted">
           {t("footer.privacy", resolved)} &copy; {new Date().getFullYear()}
           FertiLuna.
+        </p>
+        <p class="footer-legal">
+          <a href={privacyHref}>{t("footer.privacyLink", resolved)}</a>
         </p>
         <p class="footer-source">
           <span>{t("footer.sourceLead", resolved)}</span>

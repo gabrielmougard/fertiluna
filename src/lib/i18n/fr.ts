@@ -35,6 +35,7 @@ export const fr = {
   "footer.privacy":
     "Aucune donnée n'est collectée ni envoyée à un serveur. Toute l'analyse se "
     + "déroule dans votre navigateur.",
+  "footer.privacyLink": "Politique de confidentialité",
   "footer.sourceLabel": "Code source",
   "footer.sourceLead": "Projet open source :",
 

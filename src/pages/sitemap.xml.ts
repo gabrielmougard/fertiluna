@@ -26,6 +26,11 @@ export const GET: APIRoute = ({ site }) => {
     { hreflang: "en", href: `${origin}/outils/analyse-courbe?lang=en` },
     { hreflang: "x-default", href: `${origin}/outils/analyse-courbe` },
   ];
+  const privacyAlts = [
+    { hreflang: "fr", href: `${origin}/confidentialite` },
+    { hreflang: "en", href: `${origin}/confidentialite?lang=en` },
+    { hreflang: "x-default", href: `${origin}/confidentialite` },
+  ];
 
   const entries: Entry[] = [
     { loc: `${origin}/`, changefreq: "weekly", priority: "1.0", alternates: landingAlts },
@@ -37,6 +42,12 @@ export const GET: APIRoute = ({ site }) => {
       alternates: toolAlts,
     },
     { loc: `${origin}/a-propos`, changefreq: "monthly", priority: "0.5" },
+    {
+      loc: `${origin}/confidentialite`,
+      changefreq: "yearly",
+      priority: "0.3",
+      alternates: privacyAlts,
+    },
   ];
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

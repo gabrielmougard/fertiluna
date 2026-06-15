@@ -1,0 +1,326 @@
+---
+import Base from "../layouts/Base.astro";
+import Icon from "../components/Icon.astro";
+import { resolveRequestLocale, LOCALE_COOKIE } from "../lib/i18n";
+
+// Single-URL, locale-aware policy page (same pattern as /a-propos and the tool
+// page): resolve + persist the UI locale, then render the FR or EN body. A
+// real, reachable privacy policy is a hard requirement for AdSense approval and
+// for GDPR (the site serves EEA users), so the body is genuinely bilingual.
+const override = Astro.url.searchParams.get("lang");
+const country =
+  (Astro.locals as { runtime?: { cf?: { country?: string } } })?.runtime?.cf
+    ?.country ?? null;
+const locale = resolveRequestLocale({
+  override,
+  cookie: Astro.cookies.get(LOCALE_COOKIE)?.value ?? null,
+  acceptLanguage: Astro.request.headers.get("accept-language"),
+  country,
+});
+if (override) {
+  Astro.cookies.set(LOCALE_COOKIE, locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+}
+const isEN = locale === "en";
+
+const CONTACT_EMAIL = "gabriel.mougard@gmail.com";
+const UPDATED_FR = "15 juin 2026";
+const UPDATED_EN = "June 15, 2026";
+
+const title = isEN
+  ? "Privacy Policy · FertiLuna"
+  : "Politique de confidentialité · FertiLuna";
+const description = isEN
+  ? "How FertiLuna handles your data: no account, no server storage, all analysis runs in your browser. Cookies and third-party advertising explained."
+  : "Comment FertiLuna traite vos données : aucun compte, aucun stockage serveur, toute l'analyse s'exécute dans votre navigateur. Cookies et publicité expliqués.";
+---
+
+<Base title={title} description={description} locale={locale}>
+  <section class="section">
+    <div class="container narrow">
+      {
+        isEN ? (
+          <>
+            <p class="eyebrow">Legal</p>
+            <h1>Privacy Policy</h1>
+            <p class="updated">Last updated: {UPDATED_EN}</p>
+
+            <h2>Who we are</h2>
+            <p>
+              FertiLuna ("we", "the site") is an educational tool for analyzing
+              menstrual-cycle charts, available at{" "}
+              <a href="https://fertiluna.com">fertiluna.com</a>. For any question
+              about this policy or your data, contact us at{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            </p>
+
+            <h2>The data you enter stays on your device</h2>
+            <p>
+              FertiLuna does not create an account and stores nothing on a
+              server. The temperatures, LH tests and charts you provide are
+              processed <strong>entirely in your browser</strong>. They are
+              never transmitted to us or to any third party. The analysis model
+              is downloaded once and cached locally (IndexedDB); the computation
+              itself runs on your device.
+            </p>
+
+            <h2>Local history</h2>
+            <p>
+              If you use the "My analyses" feature, your past runs (a thumbnail,
+              the chart, your inputs and the result) are saved in your browser's
+              local storage (IndexedDB), capped at 30 entries. This data never
+              leaves your device, and you can delete any entry, or clear them
+              all, at any time from that panel.
+            </p>
+
+            <h2>Cookies</h2>
+            <p>We use cookies for two purposes only:</p>
+            <ul>
+              <li>
+                <strong>Functional:</strong> a small <code>lang</code> cookie
+                remembers your language choice (FR/EN). It stores no personal
+                data and is necessary for the site to work as you expect.
+              </li>
+              <li>
+                <strong>Advertising:</strong> we display ads through Google
+                AdSense, which may set cookies or read device identifiers to
+                serve and measure ads (see below).
+              </li>
+            </ul>
+
+            <h2>Advertising (Google AdSense)</h2>
+            <p>
+              This site is supported by advertising served by Google AdSense.
+              Google and its partners may use cookies and similar technologies
+              to show ads based on your prior visits to this and other websites.
+              In the European Economic Area, the United Kingdom and Switzerland,
+              personalized ads and any non-essential cookies are only used after
+              you give consent through the consent banner shown on your first
+              visit. You can change or withdraw your choice at any time via that
+              banner.
+            </p>
+            <p>
+              You can learn more and opt out of personalized advertising at{" "}
+              <a href="https://adssettings.google.com" target="_blank" rel="noopener">
+                Google Ads Settings
+              </a>
+              ,{" "}
+              <a href="https://www.youronlinechoices.eu" target="_blank" rel="noopener">
+                youronlinechoices.eu
+              </a>{" "}
+              or{" "}
+              <a href="https://optout.aboutads.info" target="_blank" rel="noopener">
+                aboutads.info
+              </a>
+              . Google's use of advertising data is described in its{" "}
+              <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">
+                Partner Sites policy
+              </a>
+              .
+            </p>
+
+            <h2>Analytics</h2>
+            <p>
+              We do not run any analytics or tracking beyond the advertising
+              described above.
+            </p>
+
+            <h2>Your rights</h2>
+            <p>
+              Because we hold no personal data about you on our servers, there is
+              nothing on our side to access, correct or delete. For the data held
+              by our advertising partner, you can exercise your choices through
+              the links above. Under the GDPR you also have the right to access,
+              rectification, erasure, objection and to withdraw consent at any
+              time. If you have a concern, you may contact us at{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> or lodge a
+              complaint with the French data-protection authority, the{" "}
+              <a href="https://www.cnil.fr/en" target="_blank" rel="noopener">CNIL</a>.
+            </p>
+
+            <h2>Children</h2>
+            <p>
+              FertiLuna is not directed at children and is not intended for use
+              by anyone under the age of 15.
+            </p>
+
+            <h2>Changes to this policy</h2>
+            <p>
+              We may update this policy. The "last updated" date above always
+              reflects the current version.
+            </p>
+
+            <div class="disclaimer">
+              <Icon name="alert" size={18} class="icon-purple" />
+              <span>
+                FertiLuna is not a medical device and does not provide a
+                diagnosis. Results are indicative and do not replace the advice
+                of a healthcare professional.
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <p class="eyebrow">Mentions légales</p>
+            <h1>Politique de confidentialité</h1>
+            <p class="updated">Dernière mise à jour : {UPDATED_FR}</p>
+
+            <h2>Qui sommes-nous</h2>
+            <p>
+              FertiLuna (« nous », « le site ») est un outil pédagogique
+              d'analyse de courbes de cycle menstruel, accessible à l'adresse{" "}
+              <a href="https://fertiluna.com">fertiluna.com</a>. Pour toute
+              question sur cette politique ou vos données, écrivez-nous à{" "}
+              <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.
+            </p>
+
+            <h2>Les données que vous saisissez restent sur votre appareil</h2>
+            <p>
+              FertiLuna ne crée aucun compte et ne stocke rien sur un serveur.
+              Les températures, tests LH et courbes que vous fournissez sont
+              traités <strong>entièrement dans votre navigateur</strong>. Ils ne
+              nous sont jamais transmis, ni à aucun tiers. Le modèle d'analyse
+              est téléchargé une seule fois puis mis en cache localement
+              (IndexedDB) ; le calcul lui-même s'exécute sur votre appareil.
+            </p>
+
+            <h2>Historique local</h2>
+            <p>
+              Si vous utilisez la fonction « Mes analyses », vos analyses passées
+              (une vignette, la courbe, vos saisies et le résultat) sont
+              enregistrées dans le stockage local de votre navigateur
+              (IndexedDB), dans la limite de 30 entrées. Ces données ne quittent
+              jamais votre appareil, et vous pouvez supprimer une entrée, ou
+              toutes les effacer, à tout moment depuis ce panneau.
+            </p>
+
+            <h2>Cookies</h2>
+            <p>Nous utilisons des cookies à deux fins seulement :</p>
+            <ul>
+              <li>
+                <strong>Fonctionnel :</strong> un petit cookie <code>lang</code>{" "}
+                mémorise votre choix de langue (FR/EN). Il ne stocke aucune
+                donnée personnelle et est nécessaire au bon fonctionnement du
+                site.
+              </li>
+              <li>
+                <strong>Publicité :</strong> nous affichons des annonces via
+                Google AdSense, qui peut déposer des cookies ou lire des
+                identifiants d'appareil pour diffuser et mesurer les publicités
+                (voir ci-dessous).
+              </li>
+            </ul>
+
+            <h2>Publicité (Google AdSense)</h2>
+            <p>
+              Ce site est financé par la publicité diffusée via Google AdSense.
+              Google et ses partenaires peuvent utiliser des cookies et des
+              technologies similaires pour afficher des annonces en fonction de
+              vos visites précédentes sur ce site et d'autres sites. Dans
+              l'Espace économique européen, au Royaume-Uni et en Suisse, les
+              publicités personnalisées et tout cookie non essentiel ne sont
+              utilisés qu'après votre consentement, recueilli via la bannière
+              affichée lors de votre première visite. Vous pouvez modifier ou
+              retirer votre choix à tout moment via cette bannière.
+            </p>
+            <p>
+              Vous pouvez en savoir plus et désactiver la publicité
+              personnalisée sur{" "}
+              <a href="https://adssettings.google.com" target="_blank" rel="noopener">
+                les paramètres des annonces Google
+              </a>
+              ,{" "}
+              <a href="https://www.youronlinechoices.eu/fr" target="_blank" rel="noopener">
+                youronlinechoices.eu
+              </a>{" "}
+              ou{" "}
+              <a href="https://optout.aboutads.info" target="_blank" rel="noopener">
+                aboutads.info
+              </a>
+              . L'utilisation des données publicitaires par Google est décrite
+              dans sa{" "}
+              <a href="https://policies.google.com/technologies/partner-sites?hl=fr" target="_blank" rel="noopener">
+                politique relative aux sites partenaires
+              </a>
+              .
+            </p>
+
+            <h2>Mesure d'audience</h2>
+            <p>
+              Nous n'utilisons aucun outil d'analyse d'audience ni de suivi
+              au-delà de la publicité décrite ci-dessus.
+            </p>
+
+            <h2>Vos droits</h2>
+            <p>
+              Comme nous ne détenons aucune donnée personnelle vous concernant
+              sur nos serveurs, il n'y a, de notre côté, rien à consulter,
+              rectifier ou supprimer. Pour les données détenues par notre
+              partenaire publicitaire, vous pouvez exercer vos choix via les
+              liens ci-dessus. Le RGPD vous reconnaît également un droit d'accès,
+              de rectification, d'effacement, d'opposition et le droit de retirer
+              votre consentement à tout moment. En cas de difficulté, vous pouvez
+              nous contacter à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>{" "}
+              ou introduire une réclamation auprès de la{" "}
+              <a href="https://www.cnil.fr" target="_blank" rel="noopener">CNIL</a>.
+            </p>
+
+            <h2>Enfants</h2>
+            <p>
+              FertiLuna ne s'adresse pas aux enfants et n'est pas destiné à être
+              utilisé par des personnes de moins de 15 ans.
+            </p>
+
+            <h2>Modifications de cette politique</h2>
+            <p>
+              Cette politique peut évoluer. La date de « dernière mise à jour »
+              ci-dessus correspond toujours à la version en vigueur.
+            </p>
+
+            <div class="disclaimer">
+              <Icon name="alert" size={18} class="icon-purple" />
+              <span>
+                FertiLuna n'est pas un dispositif médical et ne pose aucun
+                diagnostic. Les résultats sont indicatifs et ne remplacent pas
+                l'avis d'un professionnel de santé.
+              </span>
+            </div>
+          </>
+        )
+      }
+    </div>
+  </section>
+</Base>
+
+<style>
+  .narrow {
+    max-width: 720px;
+  }
+  .updated {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: -8px;
+  }
+  h2 {
+    margin-top: 32px;
+    color: var(--purple);
+  }
+  ul {
+    padding-left: 1.2em;
+  }
+  li {
+    margin-bottom: 8px;
+  }
+  code {
+    background: #f3eef8;
+    padding: 0.1em 0.35em;
+    border-radius: 5px;
+    font-size: 0.9em;
+  }
+  .disclaimer {
+    margin-top: 32px;
+  }
+</style>

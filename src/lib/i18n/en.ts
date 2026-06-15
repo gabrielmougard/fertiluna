@@ -32,6 +32,7 @@ export const en: Catalog = {
   "footer.privacy":
     "No data is collected or sent to a server. The entire analysis runs in "
     + "your browser.",
+  "footer.privacyLink": "Privacy Policy",
   "footer.sourceLabel": "Source code",
   "footer.sourceLead": "Open source project:",
 
