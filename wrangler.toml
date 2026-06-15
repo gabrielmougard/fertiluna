@@ -44,5 +44,4 @@ ADSENSE_SLOT_TOP = ""
 ADSENSE_SLOT_INLINE = ""
 ADSENSE_SLOT_RAIL = ""
 ADSENSE_SLOT_BOTTOM = ""
-# ads.txt body (one line from AdSense). Prefer `wrangler secret put ADS_TXT`.
-ADS_TXT = ""
+ADS_TXT = "google.com, pub-9235945931152642, DIRECT, f08c47fec0942fa0"
