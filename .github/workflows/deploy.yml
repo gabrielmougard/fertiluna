@@ -1,0 +1,65 @@
+name: CI & Deploy
+
+# Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   – a token with the "Edit Cloudflare Workers" template
+#                            (Account → Workers Scripts: Edit, plus the zones if
+#                            you use custom_domain routes in wrangler.toml).
+#   CLOUDFLARE_ACCOUNT_ID  – your Cloudflare account id (dashboard URL / sidebar).
+#
+# App secrets (OPENROUTER_API_KEY, ADS_TXT, ...) are NOT needed here : they live
+# on the Worker itself (`wrangler secret put ...`, set once) and persist across
+# deploys. See docs/DEPLOYMENT.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Type-check, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+      - if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 1
+          include-hidden-files: true
+
+  deploy:
+    name: Deploy to Cloudflare
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy

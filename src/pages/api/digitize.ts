@@ -89,7 +89,7 @@ export const POST: APIRoute = async (context) => {
         authorization: `Bearer ${key}`,
         "content-type": "application/json",
         // OpenRouter attribution headers (optional but recommended).
-        "x-title": "Suivi Grossesse",
+        "x-title": "FertiLuna",
       },
       body: JSON.stringify({
         model,

@@ -1,5 +1,5 @@
 /*
- * Suivi Grossesse — global styles. Brand palette:
+ * FertiLuna — global styles. Brand palette:
  *   primary rose    #d6447f
  *   accent purple   #7e4b9e
  *   soft pink bg    #fbeef4
@@ -129,9 +129,29 @@ h3 {
 .lang-switch a.on {
   color: var(--rose-dark);
 }
+/* Mobile nav: keep navigation usable instead of hiding it entirely. The
+ * secondary in-page anchors collapse, but the primary tool/about links and the
+ * language switch stay reachable, wrapping under the brand if needed. */
 @media (max-width: 640px) {
+  .site-header .container {
+    height: auto;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
   .nav-links {
+    gap: 14px;
+    font-size: 0.9rem;
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+  .nav-links .nav-secondary {
     display: none;
+  }
+  .lang-switch {
+    margin-left: auto;
   }
 }
 
@@ -263,7 +283,12 @@ h3 {
   }
 }
 
-/* ── Ad slots ─────────────────────────────────────── */
+/* ── Ad slots ─────────────────────────────────────────
+ * Responsive + layout-stable. Placements: top / inline / rail / bottom.
+ * Mobile-first sizing keeps phones (the bulk of our TikTok traffic) from
+ * feeling cluttered: rails are desktop-only, the leaderboard collapses to a
+ * slim banner, and `.ad-hide-mobile` drops a slot entirely on small screens.
+ */
 .ad-slot {
   display: flex;
   align-items: center;
@@ -281,22 +306,80 @@ h3 {
   );
   border: 1px dashed #e1d6ec;
   border-radius: 10px;
+  overflow: hidden;
 }
+.ad-slot__tag {
+  pointer-events: none;
+}
+/* Real AdSense <ins> fills the reserved box. */
+.ad-slot .adsbygoogle {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Desktop side rails (skyscraper) — only on wide tool layouts. */
 .ad-rail {
   position: sticky;
   top: 80px;
-  min-height: 600px;
+  align-self: start; /* don't stretch to the full grid-row height */
+  height: 600px;
 }
+/* In-content medium rectangle — works on every viewport. */
 .ad-inline {
   min-height: 250px;
-  margin: 8px 0;
+  max-width: 336px;
+  margin: 20px auto;
+  width: 100%;
 }
-.ad-leaderboard {
+/* Header/footer leaderboard — slim banner that shrinks on mobile. */
+.ad-top,
+.ad-bottom {
   min-height: 90px;
+  max-width: 728px;
+  margin: 12px auto;
+  width: 100%;
 }
+/* Mobile sticky bottom anchor (used on the tool page only). The wrapper is
+ * desktop-hidden; the anchor itself is fixed to the viewport bottom. */
+.ad-anchor-wrap {
+  display: none;
+}
+.ad-anchor {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 55;
+  min-height: 56px;
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  background: rgba(250, 247, 252, 0.96);
+  backdrop-filter: blur(6px);
+}
+
 @media (max-width: 1179px) {
   .ad-rail {
     display: none;
+  }
+}
+@media (max-width: 640px) {
+  .ad-top,
+  .ad-bottom {
+    min-height: 64px;
+    margin: 8px auto;
+  }
+  /* Slots explicitly opted out of mobile (avoids stacking ads on phones). */
+  .ad-hide-mobile {
+    display: none !important;
+  }
+  /* Show the sticky bottom anchor only on phones, and keep content clear. */
+  .ad-anchor-wrap {
+    display: block;
+  }
+  body:has(.ad-anchor-wrap) {
+    padding-bottom: 64px;
   }
 }
 
@@ -346,5 +429,148 @@ h3 {
 @media (prefers-reduced-motion: reduce) {
   .fade-up {
     animation: none;
+  }
+}
+
+/* ── Run history (on-device) ──────────────────────────
+ * Global (not page-scoped) because the list items are injected via innerHTML
+ * on the tool page; Astro's scoped-style attributes aren't applied to nodes
+ * inserted at runtime. The panel container lives in the page template, but its
+ * rows/buttons are built in JS, so all of it lives here for consistency.
+ */
+.history {
+  margin-top: 28px;
+}
+.history-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.history-head h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.history-sub {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+.history-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.history-item {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+.history-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #faf7fc;
+}
+.history-thumb--empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--purple);
+}
+.history-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.history-when {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.history-verdict {
+  font-size: 0.98rem;
+  border-left: 3px solid var(--purple);
+  padding-left: 8px;
+}
+.history-verdict.tone-positive {
+  border-left-color: var(--positive);
+}
+.history-verdict.tone-caution {
+  border-left-color: var(--caution);
+}
+.history-summary {
+  font-size: 0.85rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.history-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+.history-btn {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s ease, color 0.14s ease, border-color 0.14s ease;
+}
+.history-open {
+  background: var(--rose-soft);
+  color: var(--rose-dark);
+  border-color: var(--rose);
+}
+.history-open:hover {
+  background: var(--rose);
+  color: #fff;
+}
+.history-del {
+  background: #fff;
+  color: var(--danger);
+  border-color: #eccaca;
+}
+.history-del:hover {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.history-btn:focus-visible {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+@media (max-width: 560px) {
+  .history-item {
+    grid-template-columns: 48px 1fr;
+  }
+  .history-thumb {
+    width: 48px;
+    height: 48px;
+  }
+  .history-actions {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-end;
+    gap: 14px;
   }
 }

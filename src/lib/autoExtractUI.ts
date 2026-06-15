@@ -118,16 +118,29 @@ export function initAutoExtract(el: AutoExtractElements): void {
   tip.hidden = true;
   stageOuter?.appendChild(tip);
 
-  // Warm the on-device OCR in the background (axis + table reading). The CV
-  // pipeline still runs without it, so a warm-up failure is non-fatal.
-  (window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1200)))(
-    () => {
-      ensurePaddleOcrLoaded().then(
-        () => setStatus(""),
-        (e) => console.warn("[auto] OCR warm-up failed (non-fatal):", e),
-      );
-    },
+  // Warm the on-device OCR (axis + table reading) lazily, on first sign the
+  // user intends to import an image — hovering/focusing the dropzone or opening
+  // the file picker. The OCR model is ~8 MB, so eager warm-on-load used to put
+  // that download on the critical path of EVERY tool-page visit (including the
+  // many mobile users who just type values or read the page), wrecking mobile
+  // Lighthouse TBT. Warming on intent keeps it snappy when actually used while
+  // keeping initial load light. A warm-up failure is non-fatal (CV runs without
+  // OCR), and ensurePaddleOcrLoaded() is idempotent so the import path can call
+  // it again safely.
+  let ocrWarmArmed = false;
+  const warmOcr = () => {
+    if (ocrWarmArmed) return;
+    ocrWarmArmed = true;
+    ensurePaddleOcrLoaded().then(
+      () => setStatus(""),
+      (e) => console.warn("[auto] OCR warm-up failed (non-fatal):", e),
+    );
+  };
+  const dropzone = el.fileInput.closest<HTMLElement>("label") ?? el.root;
+  ["pointerenter", "focusin"].forEach((ev) =>
+    dropzone.addEventListener(ev, warmOcr, { once: true }),
   );
+  el.fileInput.addEventListener("click", warmOcr, { once: true });
 
   // Consent checkbox: reflect the persisted choice, persist on change.
   if (el.cloudConsent) {

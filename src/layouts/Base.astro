@@ -3,9 +3,15 @@ import "../styles/global.css";
 import Logo from "../components/Logo.astro";
 import Icon from "../components/Icon.astro";
 import DomainTitle from "../components/DomainTitle.astro";
+import AdSlot from "../components/AdSlot.astro";
 import { t, type Locale } from "../lib/i18n";
+import { getAdConfig, adsLive } from "../lib/ads";
 
 const GITHUB_URL = "https://github.com/gabrielmougard/fertiluna";
+
+// Public domains. FR is the primary/root domain; EN is an alias targeting the
+// English-speaking market (see the DNS strategy notes).
+const ORIGIN = "https://fertiluna.com";
 
 interface Props {
   title?: string;
@@ -14,11 +20,17 @@ interface Props {
    *  toggle switches via ?lang= on the current path instead of routing to the
    *  /en/ landing. Omit on the FR/EN landing pages (path-based). */
   locale?: Locale;
+  /** Optional OG/twitter share image (absolute path under /). */
+  image?: string;
+  /** Inject extra JSON-LD structured data (already-stringified or object). */
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 const {
-  title = "Suivi Grossesse : comprendre son cycle et prendre les bonnes décisions",
+  title = "FertiLuna : comprendre son cycle et prendre les bonnes décisions",
   description = "Analysez votre courbe de température et vos tests LH en quelques minutes, sans inscription. Une analyse pédagogique, 100 % dans votre navigateur. Vos données ne quittent jamais votre appareil.",
   locale,
+  image = "/img/bk.png",
+  jsonLd,
 } = Astro.props;
 
 // English landing lives under /en/. When a page resolves its own locale (the
@@ -31,6 +43,69 @@ const isEN = resolved === "en";
 const htmlLang = resolved;
 const frHref = paramSwitch ? "?lang=fr" : "/";
 const enHref = paramSwitch ? "?lang=en" : "/en/";
+
+// Keep the chosen language across navigation. The landing has a dedicated EN
+// path (/en/), but the tool/about pages are single-URL + ?lang/cookie driven —
+// so when we're in EN we carry ?lang=en on the chrome links (and point "home"
+// at /en/). Combined with each page persisting ?lang to a cookie, this stops
+// the language reverting (and the EN toggle "disappearing") as you move around.
+const homeHref = isEN ? "/en/" : "/";
+const langQ = isEN ? "?lang=en" : "";
+const toolHref = `/outils/analyse-courbe${langQ}`;
+const aboutHref = `/a-propos${langQ}`;
+
+// ── SEO: canonical + hreflang alternates ────────────────────────────────────
+const siteOrigin = Astro.site?.origin ?? ORIGIN;
+const canonical = new URL(path, siteOrigin).href;
+const absImage = new URL(image, siteOrigin).href;
+
+// Map the current page to its FR/EN equivalents for hreflang. The tool page is
+// bilingual on a single URL (?lang= toggle); the landing has distinct URLs.
+type Alt = { fr: string; en: string };
+function alternates(p: string): Alt {
+  if (p === "/" || p === "/en/" || p === "/en") {
+    return { fr: `${ORIGIN}/`, en: `${ORIGIN}/en/` };
+  }
+  if (p.startsWith("/outils/analyse-courbe")) {
+    return {
+      fr: `${ORIGIN}/outils/analyse-courbe`,
+      en: `${ORIGIN}/outils/analyse-courbe?lang=en`,
+    };
+  }
+  // FR-only pages (e.g. /a-propos): only an FR alternate.
+  const abs = `${ORIGIN}${p}`;
+  return { fr: abs, en: abs };
+}
+const alt = alternates(path);
+
+// ── Ad configuration (env-gated; placeholders until a pubId is set) ──────────
+const ads = getAdConfig(Astro.locals);
+const adsOn = adsLive(ads);
+
+// ── Structured data ──────────────────────────────────────────────────────────
+const orgLd = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "FertiLuna",
+  url: ORIGIN,
+  logo: new URL("/favicon.svg", siteOrigin).href,
+  sameAs: ["https://www.tiktok.com/@bijoux.choux2"],
+};
+const appLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "FertiLuna",
+  url: canonical,
+  applicationCategory: "HealthApplication",
+  operatingSystem: "Web",
+  inLanguage: isEN ? "en" : "fr",
+  description,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+  isAccessibleForFree: true,
+};
+const ldGraph: Record<string, unknown>[] = [orgLd, appLd];
+if (Array.isArray(jsonLd)) ldGraph.push(...jsonLd);
+else if (jsonLd) ldGraph.push(jsonLd);
 ---
 
 <!doctype html>
@@ -42,51 +117,97 @@ const enHref = paramSwitch ? "?lang=en" : "/en/";
     <meta name="theme-color" content="#d6447f" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>{title}</title>
+
+    <!-- canonical + alternates -->
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="fr" href={alt.fr} />
+    <link rel="alternate" hreflang="en" href={alt.en} />
+    <link rel="alternate" hreflang="x-default" href={alt.fr} />
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="FertiLuna" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={absImage} />
     <meta property="og:locale" content={isEN ? "en_US" : "fr_FR"} />
-    <!-- hreflang alternates. When the FR + EN alias domains are live, swap
-         these relative hrefs for the absolute per-domain URLs (e.g.
-         https://courbe-grossesse.fr/ and https://pregnancy-curve.com/). -->
-    <link rel="alternate" hreflang="fr" href="/" />
-    <link rel="alternate" hreflang="en" href="/en/" />
-    <link rel="alternate" hreflang="x-default" href="/" />
-    <link
-      rel="preconnect"
-      href="https://fonts.googleapis.com"
+    <meta
+      property="og:locale:alternate"
+      content={isEN ? "fr_FR" : "en_US"}
     />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={absImage} />
+
+    <!-- structured data -->
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={JSON.stringify(ldGraph)}
+    />
+
+    <!-- Fonts: preconnect + non-blocking stylesheet (improves LCP/FCP). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    />
     <link
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      />
+    </noscript>
+
+    {
+      adsOn && (
+        <script
+          is:inline
+          async
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ads.pubId}`}
+          crossorigin="anonymous"
+        />
+      )
+    }
   </head>
   <body>
+    <a href="#main" class="skip-link">{isEN ? "Skip to content" : "Aller au contenu"}</a>
     <header class="site-header">
       <div class="container">
         <span class="brand">
           <a
-            href="/"
+            href={homeHref}
             class="brand-mark"
             aria-label={t("brand.domain", resolved)}
           >
             <Logo size={32} variant="mark" />
           </a>
-          <DomainTitle locale={resolved} />
+          <DomainTitle locale={resolved} href={homeHref} />
         </span>
         <nav class="nav-links" aria-label="Navigation principale">
           {
             isEN ? (
               <>
-                <a href="/outils/analyse-courbe">{t("nav.tool", resolved)}</a>
-                <a href="/a-propos">{t("nav.about", resolved)}</a>
+                <a href={toolHref}>{t("nav.tool", resolved)}</a>
+                <a href={aboutHref}>{t("nav.about", resolved)}</a>
               </>
             ) : (
               <>
-                <a href="/outils/analyse-courbe">{t("nav.tool", resolved)}</a>
-                <a href="/#outils">{t("nav.tools", resolved)}</a>
-                <a href="/a-propos">{t("nav.about", resolved)}</a>
+                <a href={toolHref}>{t("nav.tool", resolved)}</a>
+                <a href="/#outils" class="nav-secondary">{t("nav.tools", resolved)}</a>
+                <a href={aboutHref}>{t("nav.about", resolved)}</a>
               </>
             )
           }
@@ -99,16 +220,38 @@ const enHref = paramSwitch ? "?lang=en" : "/en/";
       </div>
     </header>
 
-    <main>
+    <!-- Header leaderboard. Hidden on phones to keep the top of the page clean
+         (mobile relies on in-content + the optional bottom anchor instead). -->
+    <div class="container">
+      <AdSlot
+        placement="top"
+        hideMobile
+        live={adsOn}
+        pubId={ads.pubId}
+        slotId={ads.slots.top}
+      />
+    </div>
+
+    <main id="main">
       <slot />
     </main>
+
+    <!-- Footer leaderboard (above the footer, visible on all viewports). -->
+    <div class="container">
+      <AdSlot
+        placement="bottom"
+        live={adsOn}
+        pubId={ads.pubId}
+        slotId={ads.slots.bottom}
+      />
+    </div>
 
     <footer class="site-footer">
       <div class="container">
         <p set:html={t("footer.medical", resolved)}></p>
         <p class="muted">
           {t("footer.privacy", resolved)} &copy; {new Date().getFullYear()}
-          Suivi Grossesse.
+          FertiLuna.
         </p>
         <p class="footer-source">
           <span>{t("footer.sourceLead", resolved)}</span>
@@ -117,7 +260,7 @@ const enHref = paramSwitch ? "?lang=en" : "/en/";
             href={GITHUB_URL}
             target="_blank"
             rel="noopener"
-            aria-label={t("footer.sourceLabel", resolved)}
+            aria-label={`${t("footer.sourceLabel", resolved)} : github.com/gabrielmougard/fertiluna`}
           >
             <Icon name="github" size={16} />
             <span>github.com/gabrielmougard/fertiluna</span>
@@ -127,3 +270,20 @@ const enHref = paramSwitch ? "?lang=en" : "/en/";
     </footer>
   </body>
 </html>
+
+<style>
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 100;
+    background: var(--rose);
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 0 0 8px 0;
+    font-weight: 600;
+  }
+  .skip-link:focus {
+    left: 0;
+  }
+</style>

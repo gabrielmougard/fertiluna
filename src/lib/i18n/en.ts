@@ -5,13 +5,13 @@ export const en: Catalog = {
   "consent.title": "AI-enhanced analysis",
   "consent.body":
     "For a more accurate reading, your image can be analyzed by an external "
-    + "AI service (OpenRouter). In that case the image leaves your device for "
+    + "AI service. In that case the image leaves your device for "
     + "the duration of the analysis. Without your consent, analysis stays "
     + "100 % on your device.",
   "consent.accept": "Allow enhanced AI analysis",
   "consent.decline": "Keep it 100 % on my device",
   "consent.medical":
-    "Suivi Grossesse is not a medical device. Results are indicative and do "
+    "FertiLuna is not a medical device. Results are indicative and do "
     + "not replace the advice of a healthcare professional.",
   "status.extracted": "Analysis succeeded. Check the preview before importing.",
   "status.low_confidence":
@@ -22,12 +22,12 @@ export const en: Catalog = {
   "backend.cloud": "AI analysis (cloud)",
 
   // ── shared chrome (header / footer) ──
-  "brand.domain": "pregnancy-tracker.org",
+  "brand.domain": "FertiLuna",
   "nav.tool": "Analyze my chart",
   "nav.tools": "Tools",
   "nav.about": "About",
   "footer.medical":
-    "<strong>Suivi Grossesse</strong> is not a medical device. Results are "
+    "<strong>FertiLuna</strong> is not a medical device. Results are "
     + "indicative and do not replace the advice of a healthcare professional.",
   "footer.privacy":
     "No data is collected or sent to a server. The entire analysis runs in "
@@ -36,9 +36,9 @@ export const en: Catalog = {
   "footer.sourceLead": "Open source project:",
 
   // ── tool page (outils/analyse-courbe) ──
-  "tool.metaTitle": "Temperature chart analysis · Suivi Grossesse",
+  "tool.metaTitle": "Temperature chart analysis · FertiLuna",
   "tool.metaDescription":
-    "Enter your basal temperatures and LH tests day by day. Suivi Grossesse "
+    "Enter your basal temperatures and LH tests day by day. FertiLuna "
     + "detects ovulation, assesses your follicular and luteal phases and "
     + "interprets your cycle, no sign-up, entirely in your browser.",
   "tool.eyebrow": "Tool 1 · Chart analysis",
@@ -80,7 +80,7 @@ export const en: Catalog = {
   "dz.sectionTitle": "Import a screenshot",
   "dz.sectionDesc":
     "A chart in another app (Inito, Premom, Clearblue, Flo…) or on paper? Drop "
-    + "a screenshot and Suivi Grossesse reads the curves for you. "
+    + "a screenshot and FertiLuna reads the curves for you. "
     + "<strong>The image stays on your device.</strong>",
   "dz.dropTitle": "Drop your screenshot here",
   "dz.dropSub": "or click to choose an image",
@@ -158,4 +158,19 @@ export const en: Catalog = {
   "dzm.sideLh": "often the LEFT axis",
   "dzm.askDay1": "Number of this day (e.g. 7):",
   "dzm.askDay2": "Number of this day (further right, e.g. 24):",
+
+  // ── run history (on-device, IndexedDB) ──
+  "history.title": "My analyses",
+  "history.subtitle":
+    "Your past analyses are saved on this device only. Nothing is sent online.",
+  "history.empty":
+    "No saved analyses yet. Your next analyses will show up here.",
+  "history.open": "Reopen",
+  "history.delete": "Delete",
+  "history.clearAll": "Clear all",
+  "history.clearConfirm": "Clear all analyses saved on this device?",
+  "history.saved": "Analysis saved on this device.",
+  "history.restored": "Analysis reloaded. Re-run to recompute if needed.",
+  "history.count": "{n} saved",
+  "history.withImage": "with image",
 };

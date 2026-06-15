@@ -3,12 +3,18 @@ import Base from "../../layouts/Base.astro";
 import TikTokWall from "../../components/TikTokWall.astro";
 import Icon from "../../components/Icon.astro";
 import HeroBg from "../../components/HeroBg.astro";
+import AdSlot from "../../components/AdSlot.astro";
+import { getAdConfig, adsLive } from "../../lib/ads";
+
+const ads = getAdConfig(Astro.locals);
+const adsOn = adsLive(ads);
 
 // English landing for the `pregnancy` alias domain. The TOOL itself is still
 // French — full tool localisation is the deferred "smart router + i18n" task —
 // so EN visitors land on a localised marketing page and convert into the
-// (currently FR) tool. Swap TOOL once an /en tool route exists.
-const TOOL = "/outils/analyse-courbe";
+// (currently FR) tool. Carry ?lang=en so the tool page (single-URL, ?lang/cookie
+// driven) opens in English and persists the choice across navigation.
+const TOOL = "/outils/analyse-courbe?lang=en";
 
 const trust = [
   "Free",
@@ -19,7 +25,7 @@ const trust = [
 ---
 
 <Base
-  title="Suivi Grossesse: understand your cycle and make confident decisions"
+  title="FertiLuna: understand your cycle and make confident decisions"
   description="Read your basal temperature curve and LH tests in minutes, no sign-up. A clear, educational analysis that runs 100 % in your browser. Your data never leaves your device."
 >
   <section class="hero section">
@@ -32,7 +38,7 @@ const trust = [
       </h1>
       <p class="lead">
         A photo of your chart, or your temperatures and ovulation tests typed
-        in by hand: Suivi Grossesse reads them and explains what they mean,
+        in by hand: FertiLuna reads them and explains what they mean,
         from ovulation to luteal phase, plus the right questions for your doctor.
       </p>
       <div class="hero-cta">
@@ -64,6 +70,15 @@ const trust = [
     intro="Short, clear explainers on temperature, ovulation and how to read your charts. Tap a video to play it here."
     ctaLabel="See everything on TikTok"
   />
+
+  <div class="container">
+    <AdSlot
+      placement="inline"
+      live={adsOn}
+      pubId={ads.pubId}
+      slotId={ads.slots.inline}
+    />
+  </div>
 
   <section id="how" class="section how">
     <div class="container">

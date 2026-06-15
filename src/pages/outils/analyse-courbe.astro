@@ -5,8 +5,12 @@ import CurveDigitizer from "../../components/CurveDigitizer.astro";
 import Icon from "../../components/Icon.astro";
 import { CYCLE_MAX_DAYS } from "../../lib/constants";
 import { t, resolveRequestLocale, LOCALE_COOKIE } from "../../lib/i18n";
+import { getAdConfig, adsLive } from "../../lib/ads";
 
 const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
+
+const ads = getAdConfig(Astro.locals);
+const adsOn = adsLive(ads);
 
 // Locale: trafficked-user detection (Accept-Language / country) overridden by
 // the explicit ?lang= toggle, which we persist in a cookie so the choice
@@ -37,7 +41,12 @@ if (override) {
 >
   <div class="container">
     <div class="tool-layout">
-      <AdSlot slot="rail-left" />
+      <AdSlot
+        placement="rail"
+        live={adsOn}
+        pubId={ads.pubId}
+        slotId={ads.slots.rail}
+      />
 
       <div class="tool-main">
         <header class="tool-head">
@@ -130,10 +139,43 @@ if (override) {
 
         <!-- ── RESULT (filled by JS) ── -->
         <section id="result-panel" class="result-panel" hidden></section>
+
+        <!-- ── HISTORY (on-device, IndexedDB) — filled by JS ── -->
+        <section id="history-panel" class="history card" hidden>
+          <div class="history-head">
+            <div>
+              <h2 class="with-icon">
+                <Icon name="chart" size={18} class="icon-accent" />
+                {t("history.title", locale)}
+              </h2>
+              <p class="muted history-sub">{t("history.subtitle", locale)}</p>
+            </div>
+            <button id="history-clear" class="btn-text" type="button">
+              {t("history.clearAll", locale)}
+            </button>
+          </div>
+          <ul id="history-list" class="history-list"></ul>
+        </section>
       </div>
 
-      <AdSlot slot="rail-right" />
+      <AdSlot
+        placement="rail"
+        live={adsOn}
+        pubId={ads.pubId}
+        slotId={ads.slots.rail}
+      />
     </div>
+  </div>
+
+  <!-- Mobile-only sticky bottom anchor ad. The tool page has no sticky CTA, so
+       a single slim anchor here monetises mobile without cluttering content. -->
+  <div class="ad-anchor-wrap">
+    <AdSlot
+      placement="anchor"
+      live={adsOn}
+      pubId={ads.pubId}
+      slotId={ads.slots.bottom}
+    />
   </div>
 </Base>
 
@@ -149,6 +191,14 @@ if (override) {
   import { cachedBytes } from "../../lib/modelCache";
   import { CYCLE_MAX_DAYS } from "../../lib/constants";
   import { t, tf, toLocale } from "../../lib/i18n";
+  import {
+    saveRun,
+    listRuns,
+    getRun,
+    deleteRun,
+    clearRuns,
+    type CycleRunSummary,
+  } from "../../lib/runHistory";
 
   // The server set <html lang> from the resolved locale; mirror it client-side.
   const locale = toLocale(document.documentElement.lang);
@@ -203,22 +253,33 @@ if (override) {
     statusEl.textContent = msg;
   }
 
-  // Warm the model in the background as soon as the page is idle, so the first
-  // analysis feels instant. Caching means this only downloads once, ever.
-  (window.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 800)))(
-    () => {
-      ensureModelLoaded((p: LoadProgress) => reportLoad(p)).then(
-        async () => {
-          const bytes = await cachedBytes();
-          if (bytes > 0)
-            setStatus(
-              tf("tool.modelReady", locale, { mb: (bytes / 1e6).toFixed(1) }),
-            );
-        },
-        () => setStatus(""),
-      );
-    },
-  );
+  // Warm the cycle model on first sign of intent (focusing the input table,
+  // hovering Analyze, or hitting the demo button), NOT eagerly on page load.
+  // ORT's wasm compile + ONNX session init is heavy main-thread work (~seconds
+  // of blocking time); doing it on load tanked mobile Lighthouse TBT for every
+  // visitor, including those who only read the page. ensureModelLoaded() is
+  // idempotent and the Analyze handler awaits it anyway, so warming on intent
+  // keeps the first analysis feeling instant while keeping initial load light.
+  let modelWarmArmed = false;
+  function warmModel() {
+    if (modelWarmArmed) return;
+    modelWarmArmed = true;
+    ensureModelLoaded((p: LoadProgress) => reportLoad(p)).then(
+      async () => {
+        const bytes = await cachedBytes();
+        if (bytes > 0)
+          setStatus(
+            tf("tool.modelReady", locale, { mb: (bytes / 1e6).toFixed(1) }),
+          );
+      },
+      () => setStatus(""),
+    );
+  }
+  const inputPanel = $("#input-panel") as HTMLElement;
+  inputPanel.addEventListener("focusin", warmModel, { once: true });
+  inputPanel.addEventListener("pointerenter", warmModel, { once: true });
+  demoBtn.addEventListener("pointerenter", warmModel, { once: true });
+  analyzeBtn.addEventListener("pointerenter", warmModel, { once: true });
 
   function reportLoad(p: LoadProgress) {
     if (p.phase === "ready") return;
@@ -309,7 +370,7 @@ if (override) {
     $("#input-panel").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
-  analyzeBtn.addEventListener("click", async () => {
+  async function runAnalysis() {
     const tempsRaw = useTemp.checked
       ? readColumn("temp")
       : new Array(CYCLE_MAX_DAYS).fill(null);
@@ -341,7 +402,9 @@ if (override) {
       analyzeBtn.disabled = false;
       analyzeBtn.innerHTML = `${t("tool.analyze", locale)} ${SVG_ARROW}`;
     }
-  });
+  }
+
+  analyzeBtn.addEventListener("click", () => void runAnalysis());
 
   function esc(s: string): string {
     const d = document.createElement("div");
@@ -353,6 +416,7 @@ if (override) {
     tempsRaw: (number | null)[],
     lhRaw: (number | null)[],
     analysis: Awaited<ReturnType<typeof analyzeCycle>>,
+    opts: { persist?: boolean } = {},
   ) {
     const c = buildResultContent(analysis, locale);
     const chart = renderCurveChart({
@@ -443,7 +507,165 @@ if (override) {
     `;
     resultPanel.hidden = false;
     resultPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Persist this run to on-device history (best-effort; never blocks the UI).
+    // Skipped when re-rendering an already-saved run (reopen), to avoid dupes.
+    if (opts.persist !== false) void saveCurrentRun(tempsRaw, lhRaw, c, chart, analysis);
   }
+
+  // ── On-device history (IndexedDB via Dexie) ──────────────────────────────
+  const historyPanel = $("#history-panel") as HTMLElement;
+  const historyList = $("#history-list") as HTMLUListElement;
+  const historyClear = $("#history-clear") as HTMLButtonElement;
+
+  /** Downscale the imported screenshot (if any) to a small JPEG thumbnail.
+   *  Returns null unless the digitizer actually loaded an image — otherwise the
+   *  #auto-canvas still has its default 300x150 size and we'd capture a blank
+   *  (black) frame. The auto panel gets `.has-image` once a screenshot loads. */
+  function makeThumbnail(): string | null {
+    const panel = document.getElementById("auto-panel");
+    if (!panel || !panel.classList.contains("has-image")) return null;
+    const cv = document.getElementById("auto-canvas") as HTMLCanvasElement | null;
+    if (!cv || !cv.width || !cv.height) return null;
+    const max = 200;
+    const scale = Math.min(max / cv.width, max / cv.height, 1);
+    const w = Math.max(1, Math.round(cv.width * scale));
+    const h = Math.max(1, Math.round(cv.height * scale));
+    const off = document.createElement("canvas");
+    off.width = w;
+    off.height = h;
+    const ctx = off.getContext("2d");
+    if (!ctx) return null;
+    try {
+      ctx.drawImage(cv, 0, 0, w, h);
+      return off.toDataURL("image/jpeg", 0.7);
+    } catch {
+      return null; // tainted canvas / unsupported — skip the thumbnail.
+    }
+  }
+
+  async function saveCurrentRun(
+    tempsRaw: (number | null)[],
+    lhRaw: (number | null)[],
+    c: ReturnType<typeof buildResultContent>,
+    chartSvg: string,
+    analysis: Awaited<ReturnType<typeof analyzeCycle>>,
+  ) {
+    const id = await saveRun({
+      createdAt: Date.now(),
+      locale,
+      title: c.title,
+      summary: c.summary,
+      tone: c.tone,
+      confidencePct: c.confidencePct,
+      thumbnail: makeThumbnail(),
+      chartSvg,
+      temps: tempsRaw,
+      lh: lhRaw,
+      analysis,
+    });
+    if (id != null) {
+      setStatus(t("history.saved", locale));
+      void refreshHistory();
+    }
+  }
+
+  function fmtDate(ts: number): string {
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(ts));
+    } catch {
+      return new Date(ts).toLocaleString();
+    }
+  }
+
+  function renderHistory(runs: CycleRunSummary[]) {
+    if (!runs.length) {
+      historyPanel.hidden = true;
+      return;
+    }
+    historyPanel.hidden = false;
+    historyList.innerHTML = runs
+      .map((r) => {
+        const thumb = r.thumbnail
+          ? `<img class="history-thumb" src="${r.thumbnail}" alt="" loading="lazy" />`
+          : `<span class="history-thumb history-thumb--empty" aria-hidden="true">${SVG_STETHO}</span>`;
+        return `
+        <li class="history-item" data-id="${r.id}">
+          ${thumb}
+          <div class="history-meta">
+            <span class="history-when">${esc(fmtDate(r.createdAt))}</span>
+            <strong class="history-verdict tone-${esc(r.tone)}">${esc(r.title)}</strong>
+            <span class="history-summary">${esc(r.summary)}</span>
+          </div>
+          <div class="history-actions">
+            <button type="button" class="history-btn history-open" data-id="${r.id}">${esc(t("history.open", locale))}</button>
+            <button type="button" class="history-btn history-del" data-id="${r.id}" aria-label="${esc(t("history.delete", locale))}">${esc(t("history.delete", locale))}</button>
+          </div>
+        </li>`;
+      })
+      .join("");
+  }
+
+  async function refreshHistory() {
+    renderHistory(await listRuns());
+  }
+
+  async function reopenRun(id: number) {
+    const run = await getRun(id);
+    if (!run) return;
+    const hasTemp = run.temps.some((v) => v != null);
+    const hasLh = run.lh.some((v) => v != null);
+    useTemp.checked = hasTemp;
+    useLh.checked = hasLh || !hasTemp; // keep at least one column visible
+    syncColumns();
+    document
+      .querySelectorAll<HTMLInputElement>('input[data-kind="temp"]')
+      .forEach((inp) => {
+        const v = run.temps[Number(inp.dataset.day)];
+        inp.value = v == null ? "" : String(v);
+      });
+    document
+      .querySelectorAll<HTMLInputElement>('input[data-kind="lh"]')
+      .forEach((inp) => {
+        const v = run.lh[Number(inp.dataset.day)];
+        inp.value = v == null ? "" : String(v);
+      });
+    setStatus(t("history.restored", locale));
+    // Re-render the stored result instantly (offline, no model, no duplicate).
+    // If the analysis JSON is missing (older entry), fall back to recomputing.
+    if (run.analysis) {
+      renderResult(
+        run.temps,
+        run.lh,
+        run.analysis as Awaited<ReturnType<typeof analyzeCycle>>,
+        { persist: false },
+      );
+    } else {
+      void runAnalysis();
+    }
+  }
+
+  // Event delegation for per-item open / delete.
+  historyList.addEventListener("click", (ev) => {
+    const btn = (ev.target as HTMLElement).closest("button");
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    if (!Number.isFinite(id)) return;
+    if (btn.classList.contains("history-open")) void reopenRun(id);
+    else if (btn.classList.contains("history-del"))
+      void deleteRun(id).then(refreshHistory);
+  });
+
+  historyClear.addEventListener("click", () => {
+    if (!confirm(t("history.clearConfirm", locale))) return;
+    void clearRuns().then(refreshHistory);
+  });
+
+  // Populate history on load.
+  void refreshHistory();
 </script>
 
 <style>
@@ -728,4 +950,8 @@ if (override) {
     margin: 2px 0 0;
     color: var(--muted);
   }
+
+  /* NOTE: the on-device history list items are injected via innerHTML, so their
+     styles can't live in this scoped block (Astro scope attrs aren't applied to
+     runtime-inserted nodes). They live in global.css under "Run history". */
 </style>

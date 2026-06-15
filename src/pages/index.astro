@@ -3,8 +3,13 @@ import Base from "../layouts/Base.astro";
 import TikTokWall from "../components/TikTokWall.astro";
 import Icon from "../components/Icon.astro";
 import HeroBg from "../components/HeroBg.astro";
+import AdSlot from "../components/AdSlot.astro";
+import { getAdConfig, adsLive } from "../lib/ads";
 
 const TOOL = "/outils/analyse-courbe";
+
+const ads = getAdConfig(Astro.locals);
+const adsOn = adsLive(ads);
 
 // Honest trust signals only. No fabricated user counts or testimonials.
 const trust = [
@@ -57,8 +62,8 @@ const tools = [
         <span class="grad">On la traduit pour vous.</span>
       </h1>
       <p class="lead">
-        Prenez votre courbe en photo (ou tapez vos températures à la main, si ça
-        vous détend)&nbsp;: Suivi Grossesse la lit, repère l'ovulation et la
+        Prenez votre courbe de <strong>BBT ("Basal-Body-Temperature")</strong> en photo (ou tapez vos températures à la main, si ça
+        vous détend)&nbsp;: FertiLuna la lit, repère l'ovulation et la
         phase lutéale, et vous explique tout sans jargon et sans vous faire la
         leçon. Promis, on ne vous proposera jamais une tisane miracle.
       </p>
@@ -86,6 +91,15 @@ const tools = [
   </section>
 
   <TikTokWall profile="bijoux.choux2" />
+
+  <div class="container">
+    <AdSlot
+      placement="inline"
+      live={adsOn}
+      pubId={ads.pubId}
+      slotId={ads.slots.inline}
+    />
+  </div>
 
   <section id="comment" class="section how">
     <div class="container">
@@ -126,7 +140,7 @@ const tools = [
 
   <section id="outils" class="section">
     <div class="container">
-      <h2>Les outils Suivi Grossesse</h2>
+      <h2>Les outils FertiLuna</h2>
       <p class="muted">
         Chaque outil est gratuit, immédiat, et pensé pour rester clair même un
         dimanche matin avant le café.
@@ -154,6 +168,16 @@ const tools = [
       </div>
     </div>
   </section>
+
+  <div class="container">
+    <AdSlot
+      placement="inline"
+      hideMobile
+      live={adsOn}
+      pubId={ads.pubId}
+      slotId={ads.slots.inline}
+    />
+  </div>
 
   <section class="section final-cta">
     <div class="container">

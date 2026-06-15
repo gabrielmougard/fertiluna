@@ -4,13 +4,13 @@ export const fr = {
   "consent.title": "Analyse améliorée par IA",
   "consent.body":
     "Pour une lecture plus précise, votre image peut être analysée par un "
-    + "service d'IA externe (OpenRouter). Dans ce cas, l'image quitte votre "
+    + "service d'IA externe. Dans ce cas, l'image quitte votre "
     + "appareil le temps de l'analyse. Sans votre accord, l'analyse reste "
     + "100 % sur votre appareil.",
   "consent.accept": "Autoriser l'analyse IA améliorée",
   "consent.decline": "Rester 100 % sur mon appareil",
   "consent.medical":
-    "Suivi Grossesse n'est pas un dispositif médical. Les résultats sont "
+    "FertiLuna n'est pas un dispositif médical. Les résultats sont "
     + "indicatifs et ne remplacent pas l'avis d'un professionnel de santé.",
   // status messages
   "status.extracted": "Analyse réussie. Vérifiez l'aperçu avant d'importer.",
@@ -24,12 +24,12 @@ export const fr = {
   "backend.cloud": "Analyse IA (cloud)",
 
   // ── shared chrome (header / footer) ──
-  "brand.domain": "suivi-grossesse.fr",
+  "brand.domain": "FertiLuna",
   "nav.tool": "Analyser ma courbe",
   "nav.tools": "Les outils",
   "nav.about": "À propos",
   "footer.medical":
-    "<strong>Suivi Grossesse</strong> n'est pas un dispositif médical. Les "
+    "<strong>FertiLuna</strong> n'est pas un dispositif médical. Les "
     + "résultats sont indicatifs et ne remplacent pas l'avis d'un "
     + "professionnel de santé.",
   "footer.privacy":
@@ -39,7 +39,7 @@ export const fr = {
   "footer.sourceLead": "Projet open source :",
 
   // ── tool page (outils/analyse-courbe) ──
-  "tool.metaTitle": "Analyse de courbe de température · Suivi Grossesse",
+  "tool.metaTitle": "Analyse de courbe de température · FertiLuna",
   "tool.metaDescription":
     "Renseignez vos températures basales et vos tests LH jour par jour. Suivi "
     + "Grossesse détecte l'ovulation, évalue vos phases folliculaire et lutéale "
@@ -87,7 +87,7 @@ export const fr = {
   "dz.sectionTitle": "Importer une capture d'écran",
   "dz.sectionDesc":
     "Une courbe dans une autre appli (Inito, Premom, Clearblue, Flo…) ou sur "
-    + "papier ? Déposez une capture, Suivi Grossesse lit les courbes pour vous. "
+    + "papier ? Déposez une capture, FertiLuna lit les courbes pour vous. "
     + "<strong>L'image reste sur votre appareil.</strong>",
   "dz.dropTitle": "Déposez votre capture ici",
   "dz.dropSub": "ou cliquez pour choisir une image",
@@ -170,4 +170,22 @@ export const fr = {
   "dzm.sideLh": "souvent l'axe de GAUCHE",
   "dzm.askDay1": "Numéro de ce jour (ex. 7) :",
   "dzm.askDay2": "Numéro de ce jour (plus à droite, ex. 24) :",
+
+  // ── run history (on-device, IndexedDB) ──
+  "history.title": "Mes analyses",
+  "history.subtitle":
+    "Vos analyses précédentes sont enregistrées sur cet appareil uniquement. "
+    + "Rien n'est envoyé en ligne.",
+  "history.empty":
+    "Aucune analyse enregistrée pour l'instant. Vos prochaines analyses "
+    + "apparaîtront ici.",
+  "history.open": "Rouvrir",
+  "history.delete": "Supprimer",
+  "history.clearAll": "Tout effacer",
+  "history.clearConfirm":
+    "Effacer toutes vos analyses enregistrées sur cet appareil ?",
+  "history.saved": "Analyse enregistrée sur cet appareil.",
+  "history.restored": "Analyse rechargée. Relancez pour recalculer si besoin.",
+  "history.count": "{n} enregistrée(s)",
+  "history.withImage": "avec image",
 } as const;

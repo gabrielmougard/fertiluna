@@ -1,11 +1,34 @@
 ---
 import Base from "../layouts/Base.astro";
 import Icon from "../components/Icon.astro";
+import { resolveRequestLocale, LOCALE_COOKIE } from "../lib/i18n";
+
+// Resolve + persist the UI locale so the FR/EN toggle stays consistent when
+// arriving here from an EN page (?lang=en or the lang cookie). The page body is
+// French for now; the shared chrome (header/footer/toggle) follows the locale.
+const override = Astro.url.searchParams.get("lang");
+const country =
+  (Astro.locals as { runtime?: { cf?: { country?: string } } })?.runtime?.cf
+    ?.country ?? null;
+const locale = resolveRequestLocale({
+  override,
+  cookie: Astro.cookies.get(LOCALE_COOKIE)?.value ?? null,
+  acceptLanguage: Astro.request.headers.get("accept-language"),
+  country,
+});
+if (override) {
+  Astro.cookies.set(LOCALE_COOKIE, locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+}
 ---
 
 <Base
-  title="À propos · méthodologie Suivi Grossesse"
-  description="Comment fonctionne Suivi Grossesse : une analyse par vision par ordinateur et un modèle interprétable, exécutés entièrement dans votre navigateur."
+  title="À propos · méthodologie FertiLuna"
+  description="Comment fonctionne FertiLuna : une analyse par vision par ordinateur et un modèle interprétable, exécutés entièrement dans votre navigateur."
+  locale={locale}
 >
   <section class="section">
     <div class="container narrow">
@@ -14,7 +37,7 @@ import Icon from "../components/Icon.astro";
 
       <h2>Aucune donnée ne quitte votre appareil</h2>
       <p>
-        Suivi Grossesse ne crée pas de compte et ne stocke rien sur un serveur.
+        FertiLuna ne crée pas de compte et ne stocke rien sur un serveur.
         Le modèle d'analyse est téléchargé une seule fois puis mis en cache dans
         votre navigateur (IndexedDB). Toute l'analyse (détection de
         l'ovulation, évaluation des phases, classification) s'exécute
@@ -90,7 +113,7 @@ import Icon from "../components/Icon.astro";
       <div class="disclaimer">
         <Icon name="alert" size={18} class="icon-purple" />
         <span
-          >Suivi Grossesse n'est pas un dispositif médical et ne pose aucun
+          >FertiLuna n'est pas un dispositif médical et ne pose aucun
           diagnostic. Les résultats sont indicatifs et ne remplacent pas l'avis
           d'un professionnel de santé.</span
         >

@@ -1,34 +1,72 @@
 ---
 /**
- * AdSlot — a reusable, layout-stable ad placeholder.
+ * AdSlot — a reusable, responsive, layout-stable ad unit.
  *
- * For now it renders a labelled placeholder box (the brief says ads come
- * later). When ADSENSE_PUB_ID is configured it can be upgraded to emit a real
- * <ins class="adsbygoogle"> unit. Reserving the space now prevents layout shift
- * (CLS) later — important for both UX and ad viewability.
+ * Two modes, decided at request time (see src/lib/ads.ts):
+ *   - placeholder (default / dev / unapproved domain): a labelled box that
+ *     reserves the exact space the real ad will take, so turning ads on later
+ *     causes zero layout shift (CLS) — important for UX and ad viewability.
+ *   - live: a real <ins class="adsbygoogle"> responsive unit. The loader
+ *     script is injected once in Base.astro when a publisher id is present.
+ *
+ * Placements map to the units in docs/AD_SETUP_GUIDE.md. Responsiveness is
+ * CSS-driven (see global.css): rails are desktop-only, the leaderboard shrinks
+ * to a mobile banner, and `hideMobile` drops a slot entirely on small screens
+ * so the UI never feels cluttered with ads on phones (the bulk of our traffic).
  */
 interface Props {
-  slot: "top" | "inline" | "rail-left" | "rail-right" | "bottom";
+  placement: "top" | "inline" | "rail" | "bottom" | "anchor";
+  pubId?: string | null;
+  slotId?: string | null;
+  /** True when real AdSense markup should be emitted (adsLive(cfg)). */
+  live?: boolean;
+  /** Hide this slot on phones to avoid clutter. */
+  hideMobile?: boolean;
   label?: string;
   class?: string;
 }
-const { slot, label, class: className = "" } = Astro.props;
+const {
+  placement,
+  pubId = null,
+  slotId = null,
+  live = false,
+  hideMobile = false,
+  label,
+  class: className = "",
+} = Astro.props;
 
-const sizeClass =
-  slot === "rail-left" || slot === "rail-right"
-    ? "ad-rail"
-    : slot === "inline"
-      ? "ad-inline"
-      : "ad-leaderboard";
+const sizeClass = `ad-${placement}`;
+const classes = [
+  "ad-slot",
+  sizeClass,
+  hideMobile ? "ad-hide-mobile" : "",
+  className,
+]
+  .filter(Boolean)
+  .join(" ");
 
-const defaultLabel =
-  slot === "inline" ? "Espace publicitaire" : "Publicité";
+const showReal = live && pubId && slotId;
+const defaultLabel = placement === "inline" ? "Espace publicitaire" : "Publicité";
 ---
 
-<aside
-  class={`ad-slot ${sizeClass} ${className}`}
-  data-ad-slot={slot}
-  aria-hidden="true"
->
-  {label ?? defaultLabel}
-</aside>
+{
+  showReal ? (
+    <aside class={classes} data-ad-placement={placement}>
+      <ins
+        class="adsbygoogle"
+        style="display:block;width:100%;height:100%"
+        data-ad-client={pubId}
+        data-ad-slot={slotId}
+        data-ad-format="auto"
+        data-full-width-responsive="true"
+      />
+      <script is:inline>
+        (adsbygoogle = window.adsbygoogle || []).push({});
+      </script>
+    </aside>
+  ) : (
+    <aside class={classes} data-ad-placement={placement} aria-hidden="true">
+      <span class="ad-slot__tag">{label ?? defaultLabel}</span>
+    </aside>
+  )
+}

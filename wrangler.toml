@@ -1,9 +1,18 @@
-name = "suivi-grossesse"
+name = "fertiluna"
 compatibility_date = "2025-05-20"
 compatibility_flags = ["nodejs_compat"]
 
 # Astro's Cloudflare adapter emits the worker + static assets into ./dist.
 main = "./dist/_worker.js/index.js"
+
+# Production custom domains. FR root + EN alias both point at THIS worker.
+# Uncomment once BOTH zones are added to your Cloudflare account (otherwise
+# `wrangler deploy` errors trying to provision a domain it can't see). When
+# enabled, wrangler creates the DNS records + TLS certs for you — no manual DNS.
+# Until then the worker is reachable at <name>.<subdomain>.workers.dev.
+# routes = [
+#   { pattern = "fertiluna.com", custom_domain = true },
+# ]
 
 [assets]
 directory = "./dist"
@@ -12,7 +21,7 @@ binding = "ASSETS"
 # --------------------------------------------------
 # Environment variables
 #
-# Suivi Grossesse stores NO user data. The only vars here are for the (future) ad
+# FertiLuna stores NO user data. The only vars here are for the (future) ad
 # integration — left empty by default so the site runs ad-free in dev.
 #
 # For local dev, create a `.dev.vars` file:
@@ -29,4 +38,7 @@ DEV_MODE = "false"
 ADSENSE_PUB_ID = ""
 ADSENSE_SLOT_TOP = ""
 ADSENSE_SLOT_INLINE = ""
+ADSENSE_SLOT_RAIL = ""
 ADSENSE_SLOT_BOTTOM = ""
+# ads.txt body (one line from AdSense). Prefer `wrangler secret put ADS_TXT`.
+ADS_TXT = ""
