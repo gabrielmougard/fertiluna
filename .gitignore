@@ -11,3 +11,6 @@ dist/
 
 # Vast.ai API key
 VASTAI_API_KEY.txt
+
+# OpenRouter API key (local secret for the cloud digitize path)
+OPENROUTER_API_KEY.txt

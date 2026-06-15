@@ -1,0 +1,8 @@
+# Real users' health-chart screenshots — do NOT commit. The numeric ground
+# truth (*.labels.json) and this README are fine to track; the source images
+# and overlays are not.
+*.png
+*.jpg
+*.jpeg
+*.webp
+*_overlay.png

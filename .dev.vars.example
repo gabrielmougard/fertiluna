@@ -1,0 +1,16 @@
+# Cloud (LLM) digitization path (OpenRouter). These are SERVER secrets used by
+# src/pages/api/digitize.ts; they are never bundled into the browser.
+#
+# Local dev:  copy this file to `.dev.vars` (gitignored) and fill the key.
+#             platformProxy in astro.config.mjs exposes it as locals.runtime.env.
+# Production: set as a Cloudflare secret, e.g.
+#             wrangler secret put OPENROUTER_API_KEY
+#
+# If OPENROUTER_API_KEY is absent, /api/digitize returns 503 and the client
+# router falls back to on-device inference — so the app still works with no key.
+
+OPENROUTER_API_KEY=your-secret-key
+# Any OpenRouter vision-capable model id (optional; default
+# google/gemini-3.5-flash — smoke-tested to read accurate per-day temp+LH,
+# matching the CV pipeline, where gpt-4o-mini was flat and 2.5-flash drifted).
+OPENROUTER_MODEL=google/gemini-3.5-flash

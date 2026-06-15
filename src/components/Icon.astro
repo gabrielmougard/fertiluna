@@ -1,0 +1,86 @@
+---
+/**
+ * Icon : a small set of clean, single-stroke inline SVG icons used across the
+ * site so we never rely on emoji. Each icon inherits `currentColor` and a
+ * `size` (px). Stroke-based (Lucide-style) for a calm, professional look.
+ *
+ * Usage: <Icon name="check" size={18} />
+ */
+interface Props {
+  name: string;
+  size?: number;
+  class?: string;
+  stroke?: number;
+  label?: string;
+}
+const {
+  name,
+  size = 20,
+  class: klass = "",
+  stroke = 1.8,
+  label,
+} = Astro.props as Props;
+
+// Each entry is the inner markup of a 24x24 viewBox icon.
+const ICONS: Record<string, string> = {
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  shield:
+    '<path d="M12 3 5 6v5c0 4 3 7 7 9 4-2 7-5 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-4"/>',
+  camera:
+    '<path d="M5 8h2.5l1.2-1.6A1 1 0 0 1 9.5 6h5a1 1 0 0 1 .8.4L16.5 8H19a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"/><circle cx="12" cy="13" r="3.2"/>',
+  upload:
+    '<path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 16v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2"/>',
+  target:
+    '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+  thermometer:
+    '<path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0Z"/><path d="M12 9v6"/>',
+  drop: '<path d="M12 3.5S6.5 9.5 6.5 14a5.5 5.5 0 0 0 11 0C17.5 9.5 12 3.5 12 3.5Z"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/>',
+  alert:
+    '<path d="M10.3 4.3 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><circle cx="12" cy="16.6" r="0.6" fill="currentColor" stroke="none"/>',
+  arrow: '<path d="M5 12h14"/><path d="m13 6 6 6-6 6"/>',
+  arrowDown: '<path d="M12 5v14"/><path d="m6 13 6 6 6-6"/>',
+  external: '<path d="M14 5h5v5"/><path d="M19 5 10 14"/><path d="M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/>',
+  stethoscope:
+    '<path d="M6 4v5a4 4 0 0 0 8 0V4"/><path d="M6 4H4.5M14 4h1.5"/><path d="M10 17a4 4 0 0 0 8 0v-2"/><circle cx="18" cy="13" r="2"/>',
+  play: '<path d="M8 5.5v13l11-6.5-11-6.5Z" fill="currentColor" stroke="none"/>',
+  sparkle:
+    '<path d="M12 3.5 13.6 9 19 10.6 13.6 12.2 12 17.6 10.4 12.2 5 10.6 10.4 9 12 3.5Z"/>',
+  chart:
+    '<path d="M4 19V5"/><path d="M4 19h16"/><path d="m7 14 3-4 3 2 4-6"/>',
+  download:
+    '<path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 19h14"/>',
+  github:
+    '<path d="M9 19c-4 1.2-4-2-5.5-2.5"/><path d="M15 21v-3.4a2.7 2.7 0 0 0-.8-2.1c2.7-.3 5.5-1.3 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.3 4.3 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12 12 0 0 0-6.4 0C5.8 1 4.7 1.3 4.7 1.3a4.3 4.3 0 0 0-.1 3.2A4.6 4.6 0 0 0 3.3 7.7c0 4.6 2.8 5.6 5.5 6a2.7 2.7 0 0 0-.8 2v3.3"/>',
+  paper:
+    '<path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v6h6"/><path d="M8 13h8"/><path d="M8 17h8"/>',
+};
+
+const inner = ICONS[name] ?? ICONS.info;
+const aria = label
+  ? { role: "img", "aria-label": label }
+  : { "aria-hidden": "true" };
+---
+
+<svg
+  class={`icon ${klass}`}
+  width={size}
+  height={size}
+  viewBox="0 0 24 24"
+  fill="none"
+  stroke="currentColor"
+  stroke-width={stroke}
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  {...aria}
+  set:html={inner}
+></svg>
+
+<style>
+  .icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    vertical-align: middle;
+  }
+</style>

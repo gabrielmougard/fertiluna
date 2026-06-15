@@ -1,0 +1,409 @@
+---
+/**
+ * TikTokWall — a wall of real TikTok videos rendered with TikTok's official
+ * embed (the `tiktok-embed` blockquote + embed.js). Each card is a genuine
+ * embed, so it shows the real thumbnail/preview and plays inline.
+ *
+ * embed.js is loaded once (lazily, when the wall scrolls into view) and then
+ * upgrades every blockquote on the page into a player. The cards sit in a
+ * horizontally-scrollable row that auto-scrolls and pauses on hover/focus.
+ *
+ * To add a video: copy the numeric id from its TikTok URL
+ * (https://www.tiktok.com/@handle/video/7384XXXXXXXXXXXXX ← that number),
+ * add an entry below with a short caption. `profile` is the @handle.
+ */
+export interface TikTokVideo {
+  id: string; // numeric video id from the TikTok URL
+  caption: string; // shown inside the blockquote (and as the fallback link text)
+}
+
+interface Props {
+  eyebrow?: string;
+  title?: string;
+  intro?: string;
+  ctaLabel?: string;
+  profile?: string; // TikTok @handle (without the @)
+  videos?: TikTokVideo[];
+}
+
+const {
+  eyebrow = "Sur TikTok",
+  title = "On se suit sur TikTok ?",
+  intro =
+    "Des vidéos courtes et sans détour sur la natalité, l'ovulation et la lecture des courbes...",
+  ctaLabel = "Voir tout sur TikTok",
+  profile = "bijoux.choux2",
+  // Real videos. Add more entries here to grow the wall.
+  videos = [
+    {
+      id: "7638263853503106326",
+      caption: "Le 10 mai. DPO 5. Pas de prise de température aujourd'hui.",
+    },
+    {
+      id: "7640440952640867617",
+      caption: "Le 16 mai. J'ai testé ce matin, il était 9h. DPO 11.",
+    },
+    {
+      id: "7641267372342529313",
+      caption:
+        "Le 18 mai. J'ai fais un test digital à DPO 13. Je vous laisse voir ce que ça a donner.",
+    },
+    {
+      id: "7650757178772491552",
+      caption:
+        "7 SA + 6. Les erreurs de prédiction sont quand même une source d'angoisse chez les futurs parents.",
+    },
+    {
+      id: "7642813379865759008",
+      caption:
+        "Bilan de l'essai bébé. Tombée enceinte du premier coup. J'espère que ça vous aidera.",
+    },
+    {
+      id: "7645752657138765088",
+      caption:
+        "6 SA + 0. Quelques petits rebondissements. Résultat du test de grossesse à la fin de la vidéo.",
+    },
+    {
+      id: "7647509749902085408",
+      caption:
+        "6 SA + 5. Je vous montre mon ventre ce matin, sans les gaz ni les ballonnements.",
+    },
+    {
+      id: "7649041463338175777",
+      caption:
+        "7 SA + 2. Entre la fatigue et les soucis de digestion, je n'en peux plus. Épuisée mentalement.",
+    },
+    // ── Ajoutez d'autres vidéos ici ──
+    // { id: "0000000000000000000", caption: "Votre légende" },
+  ],
+} = Astro.props as Props;
+
+const profileUrl = `https://www.tiktok.com/@${profile}`;
+const videoUrl = (id: string) => `${profileUrl}/video/${id}`;
+---
+
+<section class="ttwall section" aria-labelledby="ttwall-title">
+  <div class="container ttwall-head">
+    <p class="eyebrow">{eyebrow}</p>
+    <h2 id="ttwall-title">{title}</h2>
+    <p class="muted">{intro}</p>
+  </div>
+
+  <div class="container tt-author">
+    <div class="tt-author-card">
+      <img
+        class="tt-avatar"
+        src="/img/bk.png"
+        alt="Bijou Kachungunu"
+        width="56"
+        height="56"
+        loading="lazy"
+        decoding="async"
+      />
+      <div class="tt-author-body">
+        <p class="tt-author-name">
+          Bijou Kachungunu <span class="tt-author-age">25 ans</span>
+        </p>
+        <a class="tt-author-handle" href={profileUrl} target="_blank" rel="noopener">
+          @{profile}
+        </a>
+        <p class="tt-author-intro">
+          Je raconte mon parcours, du désir d'enfant au post-partum. Voici
+          comment je découpe l'aventure&nbsp;:
+        </p>
+        <ul class="tt-trimesters">
+          <li>Trimestre 0️⃣ : préconception, essais bébé</li>
+          <li>Trimestre 1️⃣, 2️⃣ et 3️⃣ : conception, grossesse</li>
+          <li>💐 Naissance et accouchement 💐</li>
+          <li>Trimestre 4️⃣ : post-partum</li>
+        </ul>
+        <p class="tt-author-why">
+          J'ai créé ce site pour ma communauté. Lire une courbe de température
+          ne devrait demander ni doctorat ni carte bancaire&nbsp;: il est gratuit,
+          le restera, sans compte et sans pub déguisée.
+        </p>
+        <p class="tt-author-why">
+          Côté transparence, je joue franc jeu&nbsp;: tout se passe dans votre
+          navigateur, rien n'est envoyé sur un serveur, et la méthode est
+          détaillée sur la page «&nbsp;<a href="/a-propos">À propos</a>&nbsp;».
+          Vous gardez la main, je garde zéro donnée.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ttwall-viewport" data-ttwall>
+    {/* Cards rendered twice so the marquee loops seamlessly (translateX -50%
+        lands the duplicate set exactly where the first started). The second
+        copy is decorative, hidden from assistive tech. */}
+    <div class="ttwall-track" data-tttrack>
+      {
+        [...videos, ...videos].map((v, i) => (
+          <div class="tt-card" aria-hidden={i >= videos.length ? "true" : undefined}>
+            <blockquote
+              class="tiktok-embed"
+              cite={videoUrl(v.id)}
+              data-video-id={v.id}
+              style="max-width:325px;min-width:300px;margin:0;"
+            >
+              <section>
+                <a target="_blank" title={`@${profile}`} href={`${profileUrl}?refer=embed`}>
+                  @{profile}
+                </a>{" "}
+                {v.caption}{" "}
+                <a target="_blank" href={`${videoUrl(v.id)}?refer=embed`}>
+                  Voir sur TikTok
+                </a>
+              </section>
+            </blockquote>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="container ttwall-cta">
+    <a class="btn btn-ghost ttwall-link" href={profileUrl} target="_blank" rel="noopener">
+      {ctaLabel}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5h5v5"/><path d="M19 5 10 14"/><path d="M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"/></svg>
+    </a>
+  </div>
+</section>
+
+<style>
+  .ttwall {
+    background: linear-gradient(180deg, #fff, var(--purple-soft));
+    border-top: 1px solid var(--line);
+    overflow: hidden;
+  }
+  .ttwall-head {
+    text-align: center;
+    max-width: 640px;
+  }
+  .ttwall-head .muted {
+    max-width: 540px;
+    margin: 0 auto;
+  }
+
+  /* author presentation card */
+  .tt-author {
+    max-width: 720px;
+    margin-top: 24px;
+  }
+  .tt-author-card {
+    display: flex;
+    gap: 18px;
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+    text-align: left;
+  }
+  .tt-avatar {
+    flex: 0 0 auto;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    background: var(--purple-soft);
+    box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--rose-soft);
+  }
+  .tt-author-body {
+    min-width: 0;
+  }
+  .tt-author-name {
+    margin: 0;
+    font-weight: 800;
+    font-size: 1.1rem;
+  }
+  .tt-author-age {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .tt-author-handle {
+    display: inline-block;
+    margin: 2px 0 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--rose-dark);
+  }
+  .tt-author-intro {
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+  .tt-trimesters {
+    margin: 0 0 12px;
+    padding-left: 18px;
+    font-size: 0.92rem;
+    line-height: 1.7;
+  }
+  .tt-author-why {
+    margin: 0 0 10px;
+    font-size: 0.92rem;
+    color: var(--ink);
+  }
+  .tt-author-why:last-child {
+    margin-bottom: 0;
+  }
+  @media (max-width: 560px) {
+    .tt-author-card {
+      flex-direction: column;
+      gap: 12px;
+    }
+  }
+
+  /* viewport: a clipped window onto an infinite marquee of real embeds */
+  .ttwall-viewport {
+    margin-top: 32px;
+    width: 100%;
+    overflow: hidden;
+  }
+  .ttwall-track {
+    display: flex;
+    width: max-content;
+    padding: 6px 0 16px;
+    /* uniform card pitch (width + margin) so translateX(-50%) tiles exactly */
+    animation: ttscroll var(--ttdur, 70s) linear infinite;
+    will-change: transform;
+  }
+  /* pause the loop while hovering or keyboard-focusing the wall */
+  .ttwall-viewport:hover .ttwall-track,
+  .ttwall-viewport:focus-within .ttwall-track,
+  .ttwall-track.is-paused {
+    animation-play-state: paused;
+  }
+  @keyframes ttscroll {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      /* exact width of one (non-duplicated) set, measured in JS; falls back to
+         -50% before the script runs */
+      transform: translateX(calc(var(--shift, 50%) * -1));
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .ttwall-track {
+      animation: none;
+    }
+    /* fall back to manual horizontal scrolling */
+    .ttwall-viewport {
+      overflow-x: auto;
+    }
+  }
+
+  .tt-card {
+    flex: 0 0 auto;
+    width: 325px;
+    margin-right: 18px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    /* min height keeps layout stable while embed.js upgrades the blockquote */
+    min-height: 560px;
+  }
+  /* TikTok injects its own iframe; let it size naturally inside the card. */
+  .tt-card :global(.tiktok-embed) {
+    margin: 0 !important;
+  }
+  .tt-card :global(iframe) {
+    border-radius: var(--radius);
+  }
+
+  .ttwall-cta {
+    text-align: center;
+    margin-top: 8px;
+  }
+  .ttwall-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+</style>
+
+<script>
+  // Lazily load TikTok's embed.js the first time the wall scrolls into view.
+  // Before that, no third-party TikTok code runs (fast initial load). Once
+  // loaded, embed.js upgrades every .tiktok-embed blockquote into a player.
+  function loadTikTokEmbedScript() {
+    if (document.getElementById("tiktok-embed-js")) {
+      // Already present — ask it to (re)scan for new blockquotes.
+      // @ts-ignore — TikTok's global, no types.
+      window.tiktokEmbed?.lib?.render?.(
+        document.querySelectorAll(".tiktok-embed"),
+      );
+      return;
+    }
+    const s = document.createElement("script");
+    s.id = "tiktok-embed-js";
+    s.async = true;
+    s.src = "https://www.tiktok.com/embed.js";
+    document.body.appendChild(s);
+  }
+
+  // Infinite carousel: the cards are duplicated in the DOM and the track is
+  // translated -50% via a CSS animation, which loops seamlessly. Here we just
+  // normalize the speed (~45 px/s whatever the card count) and add a touch
+  // pause (hover/focus pause is handled in CSS).
+  function setupMarquee(wall: HTMLElement) {
+    const track = wall.querySelector<HTMLElement>("[data-tttrack]");
+    if (!track || track.dataset.marquee === "1") return;
+    track.dataset.marquee = "1";
+
+    const measure = () => {
+      const cards = track.children;
+      const n = Math.floor(cards.length / 2); // first (original) set size
+      if (n < 1) return;
+      // exact pitch of one set = where the duplicate set begins
+      const shift =
+        (cards[n] as HTMLElement).offsetLeft -
+        (cards[0] as HTMLElement).offsetLeft;
+      if (shift > 0) {
+        track.style.setProperty("--shift", `${shift}px`);
+        track.style.setProperty("--ttdur", `${Math.round(shift / 45)}s`); // ~45px/s
+      }
+    };
+    measure();
+    window.addEventListener("resize", measure);
+
+    wall.addEventListener(
+      "touchstart",
+      () => track.classList.add("is-paused"),
+      { passive: true },
+    );
+    wall.addEventListener(
+      "touchend",
+      () => track.classList.remove("is-paused"),
+      { passive: true },
+    );
+  }
+
+  function mountTikTokWall() {
+    const wall = document.querySelector<HTMLElement>("[data-ttwall]");
+    if (!wall) return;
+    setupMarquee(wall);
+    if (!("IntersectionObserver" in window)) {
+      loadTikTokEmbedScript();
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            loadTikTokEmbedScript();
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { rootMargin: "200px" },
+    );
+    io.observe(wall);
+  }
+
+  mountTikTokWall();
+  document.addEventListener("astro:page-load", mountTikTokWall);
+</script>

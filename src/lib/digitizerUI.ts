@@ -31,6 +31,7 @@ import {
   rounderFor,
 } from "./curveDigitizer";
 import { CYCLE_MAX_DAYS } from "./constants";
+import { t, tf, toLocale, type Locale } from "./i18n";
 
 interface RefPoint {
   pixel: number;
@@ -56,41 +57,37 @@ type Phase =
 
 const SERIES_META: Record<
   SeriesKind,
-  { label: string; axisSide: string; unit: string; ex1: number; ex2: number }
+  { unit: string; ex1: number; ex2: number }
 > = {
-  temp: {
-    label: "Température (BBT)",
-    axisSide: "souvent l'axe de DROITE (°C)",
-    unit: "°C",
-    ex1: 36.0,
-    ex2: 37.0,
-  },
-  lh: {
-    label: "LH / hormone",
-    axisSide: "souvent l'axe de GAUCHE",
-    unit: "",
-    ex1: 0.1,
-    ex2: 1.0,
-  },
+  temp: { unit: "°C", ex1: 36.0, ex2: 37.0 },
+  lh: { unit: "", ex1: 0.1, ex2: 1.0 },
 };
 
-function phasePrompt(phase: Phase, kind: SeriesKind): string {
-  const m = SERIES_META[kind];
+/** Localized series label + axis-side hint. */
+function seriesLabel(kind: SeriesKind, locale: Locale): string {
+  return t(kind === "temp" ? "dz.tempLabel" : "dz.lhLabel", locale);
+}
+function axisSide(kind: SeriesKind, locale: Locale): string {
+  return t(kind === "temp" ? "dzm.sideTemp" : "dzm.sideLh", locale);
+}
+
+function phasePrompt(phase: Phase, kind: SeriesKind, locale: Locale): string {
+  const label = seriesLabel(kind, locale);
   switch (phase) {
     case "idle":
-      return "Importez une capture d'écran de votre courbe pour commencer.";
+      return t("dzm.idle", locale);
     case "day1":
-      return "Axe des jours (1/2) — cliquez sur un repère de jour connu (ligne ZT/jour), puis indiquez son numéro.";
+      return t("dzm.day1", locale);
     case "day2":
-      return "Axe des jours (2/2) — cliquez sur un autre repère de jour, plus à droite.";
+      return t("dzm.day2", locale);
     case "value1":
-      return `« ${m.label} » — valeur (1/2) : cliquez sur une graduation de son axe (${m.axisSide}), puis indiquez sa valeur.`;
+      return tf("dzm.value1", locale, { label, side: axisSide(kind, locale) });
     case "value2":
-      return `« ${m.label} » — valeur (2/2) : cliquez sur une autre graduation du même axe.`;
+      return tf("dzm.value2", locale, { label });
     case "color":
-      return `« ${m.label} » — cliquez directement sur sa courbe pour sélectionner sa couleur.`;
+      return tf("dzm.color", locale, { label });
     case "ready":
-      return `« ${m.label} » détectée. Vérifiez l'aperçu, ajustez la tolérance, ou passez à l'autre série / importez.`;
+      return tf("dzm.ready", locale, { label });
   }
 }
 
@@ -113,6 +110,7 @@ export function initDigitizer(el: DigitizerElements): void {
   const ctx = el.canvas.getContext("2d", { willReadFrequently: true })!;
   const octx = el.overlay.getContext("2d")!;
   const lctx = el.loupe.getContext("2d")!;
+  const locale = toLocale(document.documentElement.lang);
 
   let imgData: ImageData | null = null;
   let phase: Phase = "idle";
@@ -129,7 +127,7 @@ export function initDigitizer(el: DigitizerElements): void {
   }
 
   function setPrompt() {
-    el.prompt.textContent = phasePrompt(phase, active);
+    el.prompt.textContent = phasePrompt(phase, active, locale);
   }
   function setStatus(s: string) {
     el.status.textContent = s;
@@ -257,15 +255,16 @@ export function initDigitizer(el: DigitizerElements): void {
     const { x, y } = toSourcePx(ev);
     const s = cur();
     const m = SERIES_META[active];
+    const label = seriesLabel(active, locale);
 
     if (phase === "day1") {
-      const v = askNumber("Numéro de ce jour (ex. 7) :", 1);
+      const v = askNumber(t("dzm.askDay1", locale), 1);
       if (v == null) return;
       dayRefs[0] = { pixel: x, value: v };
       phase = "day2";
     } else if (phase === "day2") {
       const v = askNumber(
-        "Numéro de ce jour (plus à droite, ex. 24) :",
+        t("dzm.askDay2", locale),
         Math.min(CYCLE_MAX_DAYS, dayRefs[0].value + 15),
       );
       if (v == null) return;
@@ -273,7 +272,7 @@ export function initDigitizer(el: DigitizerElements): void {
       phase = "value1";
     } else if (phase === "value1") {
       const v = askNumber(
-        `${m.label} — valeur de cette graduation (${m.unit}, ex. ${m.ex1}) :`,
+        tf("dzm.askValue1", locale, { label, unit: m.unit, ex: m.ex1 }),
         m.ex1,
       );
       if (v == null) return;
@@ -281,7 +280,7 @@ export function initDigitizer(el: DigitizerElements): void {
       phase = "value2";
     } else if (phase === "value2") {
       const v = askNumber(
-        `${m.label} — valeur de l'autre graduation (${m.unit}, ex. ${m.ex2}) :`,
+        tf("dzm.askValue2", locale, { label, unit: m.unit, ex: m.ex2 }),
         m.ex2,
       );
       if (v == null) return;
@@ -399,8 +398,11 @@ export function initDigitizer(el: DigitizerElements): void {
     const found = s.days.filter((d) => d.value != null).length;
     setStatus(
       found > 0
-        ? `${found} jours détectés pour « ${SERIES_META[s.kind].label} ».`
-        : "Aucun point détecté — cliquez précisément sur la courbe (utilisez la loupe) ou augmentez la tolérance.",
+        ? tf("dzm.daysDetected", locale, {
+            n: found,
+            label: seriesLabel(s.kind, locale),
+          })
+        : t("dzm.noPoint", locale),
     );
   }
 

@@ -1,0 +1,140 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\abx@aux@refcontext{none/global//global/global/global}
+\abx@aux@cite{0}{rohrer2015fertility}
+\abx@aux@segm{0}{0}{rohrer2015fertility}
+\abx@aux@cite{0}{gdpr2016}
+\abx@aux@segm{0}{0}{gdpr2016}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{3}{section.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.1}Motivation and design constraints}{3}{subsection.1.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.2}The two-stage thesis}{3}{subsection.1.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {1.3}Contributions}{3}{subsection.1.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {2}System overview}{3}{section.2}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces End-to-end system architecture. Training is offline; serving is a same-origin static-asset delivery; all inference is client-side. The dashed boundary around the browser denotes the privacy perimeter: cycle data never crosses it.}}{5}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:sysarch}{{1}{5}{End-to-end system architecture. Training is offline; serving is a same-origin static-asset delivery; all inference is client-side. The dashed boundary around the browser denotes the privacy perimeter: cycle data never crosses it}{figure.caption.1}{}}
+\abx@aux@cite{0}{pedregosa2011scikit}
+\abx@aux@segm{0}{0}{pedregosa2011scikit}
+\abx@aux@cite{0}{onnx2017}
+\abx@aux@segm{0}{0}{onnx2017}
+\abx@aux@cite{0}{skl2onnx}
+\abx@aux@segm{0}{0}{skl2onnx}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Technology stack}{6}{subsection.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3}The forest model: calibrated cycle classification}{6}{section.3}\protected@file@percent }
+\newlabel{sec:forest}{{3}{6}{The forest model: calibrated cycle classification}{section.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Problem formulation}{6}{subsection.3.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Feature engineering}{6}{subsection.3.2}\protected@file@percent }
+\newlabel{sec:features}{{3.2}{6}{Feature engineering}{subsection.3.2}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {1}{\ignorespaces The SENSIPLAN 3-over-6 detector, the anchor feature for follicular/luteal partitioning (from \texttt  {\small  \color  {NavyBlue!70!black}features.py}).}}{6}{lstlisting.1}\protected@file@percent }
+\abx@aux@cite{0}{breiman2001random}
+\abx@aux@segm{0}{0}{breiman2001random}
+\abx@aux@cite{0}{platt1999probabilistic}
+\abx@aux@segm{0}{0}{platt1999probabilistic}
+\abx@aux@cite{0}{niculescu2005predicting}
+\abx@aux@segm{0}{0}{niculescu2005predicting}
+\abx@aux@cite{0}{liu2008isolation}
+\abx@aux@segm{0}{0}{liu2008isolation}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The thirty-dimensional feature vector $\phi (\bm  {t},\bm  {\ell })$. Indices match \texttt  {\small  \color  {NavyBlue!70!black}constants.py}. All entries are scalars; missing days contribute \textsc  {nan} that is handled by NaN-safe reductions.}}{7}{table.caption.2}\protected@file@percent }
+\newlabel{tab:features}{{1}{7}{The thirty-dimensional feature vector $\phi (\bm {t},\bm {\ell })$. Indices match \file {constants.py}. All entries are scalars; missing days contribute \textsc {nan} that is handled by NaN-safe reductions}{table.caption.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Synthetic data generation}{7}{subsection.3.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.4}Model and calibration}{7}{subsection.3.4}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {2}{\ignorespaces Single prefit forest, calibrated on a held-out split (from \texttt  {\small  \color  {NavyBlue!70!black}train.py}).}}{7}{lstlisting.2}\protected@file@percent }
+\newlabel{eq:gate}{{1}{7}{Model and calibration}{equation.1}{}}
+\abx@aux@cite{0}{skl2onnx}
+\abx@aux@segm{0}{0}{skl2onnx}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.5}Out-of-distribution detection}{8}{subsection.3.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.6}Training and export pipeline}{8}{subsection.3.6}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Forest training and export pipeline: synthetic generation, feature extraction, a single prefit forest with Platt calibration, an isolation-forest OOD backstop, and ONNX export with an enforced numerical-parity contract.}}{9}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:forest}{{2}{9}{Forest training and export pipeline: synthetic generation, feature extraction, a single prefit forest with Platt calibration, an isolation-forest OOD backstop, and ONNX export with an enforced numerical-parity contract}{figure.caption.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.7}Results}{10}{subsection.3.7}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Per-class performance of the calibrated forest on the synthetic test set ($n=\num {10000}$).}}{10}{table.caption.4}\protected@file@percent }
+\newlabel{tab:forestmetrics}{{2}{10}{Per-class performance of the calibrated forest on the synthetic test set ($n=\num {10000}$)}{table.caption.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Confusion matrix of the calibrated forest (rows: true class top-to-bottom follows the legend order; counts annotated). The dominant off-diagonal mass lies between adjacent clinical categories.}}{10}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:cm}{{3}{10}{Confusion matrix of the calibrated forest (rows: true class top-to-bottom follows the legend order; counts annotated). The dominant off-diagonal mass lies between adjacent clinical categories}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}The vision stage: reading charts with classical computer vision}{10}{section.4}\protected@file@percent }
+\newlabel{sec:vision}{{4}{10}{The vision stage: reading charts with classical computer vision}{section.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Problem statement}{10}{subsection.4.1}\protected@file@percent }
+\abx@aux@cite{0}{du2020ppocr}
+\abx@aux@segm{0}{0}{du2020ppocr}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}Why a deterministic pipeline rather than a neural network}{11}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:why-cv}{{4.2}{11}{Why a deterministic pipeline rather than a neural network}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}Pipeline architecture}{11}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:cvarch}{{4.3}{11}{Pipeline architecture}{subsection.4.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces The classical-CV chart digitizer: nine ordered, deterministic stages from raw screenshot to \texttt  {\small  ChartResult}. The only learned component is a small PaddleOCR network that reads numeric axis labels; all geometry is explicit arithmetic.}}{12}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:cvpipeline}{{4}{12}{The classical-CV chart digitizer: nine ordered, deterministic stages from raw screenshot to \code {ChartResult}. The only learned component is a small PaddleOCR network that reads numeric axis labels; all geometry is explicit arithmetic}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Key stages in detail}{12}{subsection.4.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Color segmentation (stage 2).}{12}{paragraph*.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Multi-axis tick reading via OCR $+$ RANSAC (stage 4).}{13}{paragraph*.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Day-cell grid (stage 5).}{13}{paragraph*.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Marker detection and LH-source resolution (stage 6).}{13}{paragraph*.10}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Guardrails (stage 8).}{13}{paragraph*.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Quality gating (stage 9).}{13}{paragraph*.12}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}The \texttt  {ChartResult} contract}{13}{subsection.4.5}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces The principal fields of \texttt  {\small  ChartResult}. The numeric core (\texttt  {\small  value}, \texttt  {\small  present}, \texttt  {\small  scale\_idx}) matches the contract of the neural alternative; the remaining fields are side-outputs unique to the geometric pipeline.}}{14}{table.caption.13}\protected@file@percent }
+\newlabel{tab:chartresult}{{3}{14}{The principal fields of \code {ChartResult}. The numeric core (\code {value}, \code {present}, \code {scale\_idx}) matches the contract of the neural alternative; the remaining fields are side-outputs unique to the geometric pipeline}{table.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.6}Results on real Premom screenshots}{14}{subsection.4.6}\protected@file@percent }
+\newlabel{sec:cvresults}{{4.6}{14}{Results on real Premom screenshots}{subsection.4.6}{}}
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {3}{\ignorespaces Producing the diagnostic overlays from real screenshots (run from \texttt  {\small  \color  {NavyBlue!70!black}model/}).}}{14}{lstlisting.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Classical-CV pipeline on four real Premom screenshots. Counts are detected (present) days out of the 35-day window; \emph  {vis.} is the estimated number of days the chart actually shows.}}{14}{table.caption.14}\protected@file@percent }
+\newlabel{tab:cvreal}{{4}{14}{Classical-CV pipeline on four real Premom screenshots. Counts are detected (present) days out of the 35-day window; \emph {vis.} is the estimated number of days the chart actually shows}{table.caption.14}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces Overlay for \texttt  {real-screen-1} (English, sparse, Fahrenheit auto-detected). Blue rings are detected BBT points; orange rings are the LH ``Ratio'' line; the green box is the plot region; the numbered ticks at the bottom are the day-cell grid; the right-margin boxes are the OCR'd Fahrenheit BBT axis ($\geq \!95$ \dots  $\geq \!99.5$); the bottom rows are the recovered calendar table (Mar dates, CD, DPO, Sex hearts, CM). The two-row strip at the very bottom is the de-normalized output (\si {\degree F} for BBT, ratio for LH).}}{15}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:overlay1}{{5}{15}{Overlay for \texttt {real-screen-1} (English, sparse, Fahrenheit auto-detected). Blue rings are detected BBT points; orange rings are the LH ``Ratio'' line; the green box is the plot region; the numbered ticks at the bottom are the day-cell grid; the right-margin boxes are the OCR'd Fahrenheit BBT axis ($\geq \!95$ \dots $\geq \!99.5$); the bottom rows are the recovered calendar table (Mar dates, CD, DPO, Sex hearts, CM). The two-row strip at the very bottom is the de-normalized output (\si {\degree F} for BBT, ratio for LH)}{figure.caption.15}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Overlay for \texttt  {real-screen-3}, a dense $\approx \!42$-day chart whose LH signal is the \emph  {purple} ``Level'' line. Here the detector switches from discrete markers to per-cell line sampling: the densely-packed blue and orange rings track the continuous curves cell by cell, the chart is left-packed into the 35-day window and flagged \texttt  {truncated}, and the purple Level line is correctly chosen as the LH source over the orange Ratio line.}}{15}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:overlay3}{{6}{15}{Overlay for \texttt {real-screen-3}, a dense $\approx \!42$-day chart whose LH signal is the \emph {purple} ``Level'' line. Here the detector switches from discrete markers to per-cell line sampling: the densely-packed blue and orange rings track the continuous curves cell by cell, the chart is left-packed into the 35-day window and flagged \texttt {truncated}, and the purple Level line is correctly chosen as the LH source over the orange Ratio line}{figure.caption.16}{}}
+\abx@aux@cite{0}{howard2017mobilenets}
+\abx@aux@segm{0}{0}{howard2017mobilenets}
+\abx@aux@cite{0}{sandler2018mobilenetv2}
+\abx@aux@segm{0}{0}{sandler2018mobilenetv2}
+\abx@aux@cite{0}{nibali2018numerical}
+\abx@aux@segm{0}{0}{nibali2018numerical}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.7}The browser port}{16}{subsection.4.7}\protected@file@percent }
+\newlabel{sec:cv-browser}{{4.7}{16}{The browser port}{subsection.4.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.8}A neural alternative we explored but did not ship}{16}{subsection.4.8}\protected@file@percent }
+\newlabel{sec:cnn-alt}{{4.8}{16}{A neural alternative we explored but did not ship}{subsection.4.8}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces The \emph  {unshipped} neural baseline: a depthwise-separable encoder feeding a soft-argmax value head, a presence head, and a unit-classification head. Retained for reference; the deployed vision stage is the classical pipeline of Figure~\ref {fig:cvpipeline}.}}{17}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:visionarch}{{7}{17}{The \emph {unshipped} neural baseline: a depthwise-separable encoder feeding a soft-argmax value head, a presence head, and a unit-classification head. Retained for reference; the deployed vision stage is the classical pipeline of Figure~\ref {fig:cvpipeline}}{figure.caption.17}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.9}A hybrid digitization router}{17}{subsection.4.9}\protected@file@percent }
+\abx@aux@cite{0}{onnx2017}
+\abx@aux@segm{0}{0}{onnx2017}
+\abx@aux@cite{0}{onnxruntimeweb}
+\abx@aux@segm{0}{0}{onnxruntimeweb}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Hybrid on-device digitization. The deployed default is the deterministic classical-CV pipeline ($+$ PaddleOCR); a manual calibrator and the neural baseline are alternative routes. All produce the same structured series consumed by the forest classifier.}}{18}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:import}{{8}{18}{Hybrid on-device digitization. The deployed default is the deterministic classical-CV pipeline ($+$ PaddleOCR); a manual calibrator and the neural baseline are alternative routes. All produce the same structured series consumed by the forest classifier}{figure.caption.18}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Shipping models on-device}{18}{section.5}\protected@file@percent }
+\newlabel{sec:ondevice}{{5}{18}{Shipping models on-device}{section.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.1}ONNX as the lingua franca}{18}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.2}From artifact to asset}{18}{subsection.5.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.3}Versioned, checksum-validated caching}{18}{subsection.5.3}\protected@file@percent }
+\@writefile{lol}{\contentsline {lstlisting}{\numberline {4}{\ignorespaces Checksum-keyed cache lookup and eviction (from \texttt  {\small  \color  {NavyBlue!70!black}modelCache.ts}).}}{18}{lstlisting.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4}Inference lifecycle}{19}{subsection.5.4}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces On-device inference lifecycle. The cold path (cache miss) verifies a checksum and persists the model; the warm path is network-free. No cycle datum is ever transmitted.}}{20}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:seq}{{9}{20}{On-device inference lifecycle. The cold path (cache miss) verifies a checksum and persists the model; the warm path is network-free. No cycle datum is ever transmitted}{figure.caption.19}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.5}The parity contract}{20}{subsection.5.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Privacy and threat model}{20}{section.6}\protected@file@percent }
+\abx@aux@cite{0}{gdpr2016}
+\abx@aux@segm{0}{0}{gdpr2016}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion and limitations}{21}{section.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Determinism over learned perception.}{21}{paragraph*.20}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Synthetic-only training of the forest.}{21}{paragraph*.21}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Confusion between adjacent classes.}{21}{paragraph*.22}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Client compute budget.}{21}{paragraph*.23}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {8}Conclusion}{21}{section.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}References}{22}{section.9}\protected@file@percent }
+\abx@aux@read@bbl@mdfivesum{03D3D259F9EF046040AACC97B1E28895}
+\abx@aux@defaultrefcontext{0}{rohrer2015fertility}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{gdpr2016}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{pedregosa2011scikit}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{onnx2017}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{skl2onnx}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{breiman2001random}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{platt1999probabilistic}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{niculescu2005predicting}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{liu2008isolation}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{du2020ppocr}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{howard2017mobilenets}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{sandler2018mobilenetv2}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{nibali2018numerical}{none/global//global/global/global}
+\abx@aux@defaultrefcontext{0}{onnxruntimeweb}{none/global//global/global/global}
+\gdef \@abspage@last{23}

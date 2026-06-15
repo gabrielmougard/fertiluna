@@ -1,0 +1,40 @@
+@startuml screenshot-import
+' Two on-device routes for reading a fertility-app screenshot
+skinparam dpi 200
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #37474F
+skinparam rectangle {
+  BorderColor #455A64
+  FontColor #102027
+}
+
+title Screenshot import --- hybrid on-device digitization
+
+rectangle "Screenshot of fertility-app chart\n(e.g. Premom)" as IMG #E3F2FD
+
+rectangle "Route A (default) --- Classical CV\npure-TS OpenCV port\n+ PaddleOCR PP-OCRv3 (ONNX)" as A #E8F5E9
+rectangle "Route B --- Manual calibration\ncolumn-scan digitizer\n(WebPlotDigitizer-style)" as B #F3E5F5
+rectangle "Route C (baseline) --- Neural\nChart-Vision CNN\nchart-vision-v2.onnx (16.6 MB)\n[built, not shipped]" as C #FFF3E0
+
+IMG --> A
+IMG --> B
+IMG --> C
+
+rectangle "Per-day series\ntemp[35], lh[35]\n+ BBT scale (C/F) + table" as SERIES #ECEFF1
+
+A --> SERIES : color segmentation,\naxis OCR + RANSAC,\nmarker detection
+B --> SERIES : user picks axis ticks,\ncolumn intensity scan
+C --> SERIES : soft-argmax value\n+ presence + scale head
+
+rectangle "Editable table -> analyzeCycle()\n(forest classifier)" as TABLE #FFE0B2
+SERIES --> TABLE
+
+note bottom of A
+  cv2 ops reimplemented in TS
+  (no OpenCV.js / WASM);
+  only model asset = PaddleOCR ONNX.
+  Deterministic + recovers calendar table.
+end note
+@enduml

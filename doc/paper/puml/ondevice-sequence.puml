@@ -1,0 +1,50 @@
+@startuml ondevice-sequence
+' On-device inference sequence: first load (cache miss) + warm load (cache hit)
+skinparam dpi 200
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam sequenceArrowThickness 1.1
+skinparam ParticipantBackgroundColor #ECEFF1
+skinparam ParticipantBorderColor #455A64
+skinparam ActorBackgroundColor #F3E5F5
+skinparam DatabaseBackgroundColor #E8F5E9
+
+title On-device inference --- model fetch, checksum-verified cache, and prediction
+
+actor User as U
+participant "UI\n(analyse-courbe)" as UI
+participant "inference.ts\n(runtime)" as RT
+participant "manifest.ts" as MAN
+database "IndexedDB\n(Dexie cache)" as IDB
+participant "Cloudflare\nWorker" as CF
+participant "onnxruntime-web\n(WASM)" as ORT
+
+== First visit (cache miss) ==
+U -> UI : enter / import BBT + LH
+UI -> RT : analyzeCycle(temps, lh)
+RT -> MAN : fetchManifest(version)
+MAN -> CF : GET /models/model-manifest-v1.json
+CF --> MAN : version, files{sha256, bytes}
+RT -> IDB : get(version:fileName)
+IDB --> RT : miss
+RT -> CF : GET /models/cycle-classifier-v1.onnx (streamed)
+CF --> RT : ArrayBuffer (+ progress)
+RT -> RT : sha256(buffer) == manifest.sha256 ?
+RT -> IDB : put(buffer)  (evict older versions)
+RT -> ORT : InferenceSession.create(buffer)
+
+== Prediction (same for warm path) ==
+RT -> RT : extractFeatures -> (30,) float32
+RT -> ORT : run({input})
+ORT --> RT : probabilities[5], iforest score
+RT -> RT : argmax + 0.6 confidence gate\nOOD percentile from p5/p50/p95
+RT --> UI : CycleAnalysis (label, confidence, derived)
+UI --> U : narrative result (no upload)
+
+== Return visit (cache hit) ==
+UI -> RT : analyzeCycle(...)
+RT -> IDB : get(version:fileName)
+IDB --> RT : hit (sha256 matches)
+RT -> ORT : InferenceSession.create(cached)
+note over IDB, ORT : No network. Fully offline-capable after first load.
+@enduml

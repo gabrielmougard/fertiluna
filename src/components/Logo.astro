@@ -1,0 +1,92 @@
+---
+/**
+ * Logo — the "Suivi Grossesse" brand mark.
+ *
+ * A real, geometric SVG logo (no emoji): a rounded tile holding a rising
+ * basal-body-temperature curve with a highlighted ovulation point. The curve
+ * climbing then plateauing evokes both the BBT chart we read and the idea of
+ * progression / growth. Rendered inline so it inherits crispness at any size
+ * and can be themed via the brand gradient.
+ *
+ * Props:
+ *   variant  "full" (mark + wordmark) | "mark" (icon only)
+ *   size     pixel height of the mark (wordmark scales with it)
+ */
+interface Props {
+  variant?: "full" | "mark";
+  size?: number;
+  class?: string;
+}
+const { variant = "full", size = 34, class: klass = "" } = Astro.props as Props;
+const uid = "lg" + Math.random().toString(36).slice(2, 8);
+---
+
+<span class={`logo ${klass}`} style={`--logo-size:${size}px`}>
+  <svg
+    class="logo-mark"
+    width={size}
+    height={size}
+    viewBox="0 0 48 48"
+    fill="none"
+    role="img"
+    aria-label="Suivi Grossesse"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <defs>
+      <linearGradient id={`${uid}-g`} x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+        <stop offset="0" stop-color="#d6447f"></stop>
+        <stop offset="1" stop-color="#7e4b9e"></stop>
+      </linearGradient>
+    </defs>
+    <!-- tile -->
+    <rect x="2" y="2" width="44" height="44" rx="13" fill={`url(#${uid}-g)`}></rect>
+    <!-- baseline -->
+    <line x1="10" y1="33" x2="38" y2="33" stroke="#fff" stroke-opacity="0.32" stroke-width="2" stroke-linecap="round"></line>
+    <!-- rising BBT curve: low follicular, sharp rise, luteal plateau -->
+    <path
+      d="M10 31 L15 30.5 L19 31 L22 24 L26 18 L31 17 L38 17"
+      stroke="#fff"
+      stroke-width="3"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    ></path>
+    <!-- ovulation point (the rise) -->
+    <circle cx="22" cy="24" r="3.4" fill="#fff"></circle>
+    <circle cx="22" cy="24" r="1.5" fill="#7e4b9e"></circle>
+  </svg>
+  {
+    variant === "full" && (
+      <span class="logo-word">
+        <span class="logo-word-1">Suivi</span>
+        <span class="logo-word-2">Grossesse</span>
+      </span>
+    )
+  }
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    line-height: 1;
+  }
+  .logo-mark {
+    display: block;
+    flex: 0 0 auto;
+  }
+  .logo-word {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    font-weight: 800;
+    font-size: calc(var(--logo-size, 34px) * 0.6);
+    letter-spacing: -0.01em;
+  }
+  .logo-word-1 {
+    color: var(--rose-dark);
+  }
+  .logo-word-2 {
+    color: var(--purple);
+  }
+</style>

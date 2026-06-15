@@ -1,0 +1,230 @@
+---
+import Base from "../../layouts/Base.astro";
+import TikTokWall from "../../components/TikTokWall.astro";
+import Icon from "../../components/Icon.astro";
+import HeroBg from "../../components/HeroBg.astro";
+
+// English landing for the `pregnancy` alias domain. The TOOL itself is still
+// French — full tool localisation is the deferred "smart router + i18n" task —
+// so EN visitors land on a localised marketing page and convert into the
+// (currently FR) tool. Swap TOOL once an /en tool route exists.
+const TOOL = "/outils/analyse-courbe";
+
+const trust = [
+  "Free",
+  "No sign-up",
+  "100 % in your browser",
+  "Result in ~2 min",
+];
+---
+
+<Base
+  title="Suivi Grossesse: understand your cycle and make confident decisions"
+  description="Read your basal temperature curve and LH tests in minutes, no sign-up. A clear, educational analysis that runs 100 % in your browser. Your data never leaves your device."
+>
+  <section class="hero section">
+    <HeroBg />
+    <div class="container">
+      <p class="eyebrow">No sign-up &middot; 100 % in your browser</p>
+      <h1>
+        Understand your cycle.<br />
+        <span class="grad">Make confident decisions.</span>
+      </h1>
+      <p class="lead">
+        A photo of your chart, or your temperatures and ovulation tests typed
+        in by hand: Suivi Grossesse reads them and explains what they mean,
+        from ovulation to luteal phase, plus the right questions for your doctor.
+      </p>
+      <div class="hero-cta">
+        <a href={TOOL} class="btn btn-primary btn-lg with-icon"
+          >Analyze my chart <Icon name="arrow" size={18} /></a
+        >
+        <a href="#how" class="btn btn-ghost">How it works</a>
+      </div>
+      <ul class="trust" aria-label="Key points">
+        {
+          trust.map((t) => (
+            <li class="with-icon">
+              <Icon name="check" size={16} class="icon-accent" /> {t}
+            </li>
+          ))
+        }
+      </ul>
+      <p class="privacy-note with-icon">
+        <Icon name="lock" size={16} class="icon-muted" /> Your data never leaves
+        your device. No account, no server storage.
+      </p>
+    </div>
+  </section>
+
+  <TikTokWall
+    profile="bijoux.choux2"
+    eyebrow="On TikTok"
+    title="Pregnancy & cycle videos"
+    intro="Short, clear explainers on temperature, ovulation and how to read your charts. Tap a video to play it here."
+    ctaLabel="See everything on TikTok"
+  />
+
+  <section id="how" class="section how">
+    <div class="container">
+      <h2>How it works</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>Import or type</h3>
+          <p class="muted">
+            A screenshot from your tracking app, or your day-by-day
+            temperatures and LH tests.
+          </p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>Instant analysis</h3>
+          <p class="muted">
+            A vision model runs right in your browser. Nothing is sent online.
+          </p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>Understand your cycle</h3>
+          <p class="muted">
+            An annotated curve, a clear explanation, and the questions to ask
+            your doctor.
+          </p>
+        </div>
+      </div>
+      <div class="how-cta">
+        <a href={TOOL} class="btn btn-primary btn-lg with-icon"
+          >Start now <Icon name="arrow" size={18} /></a
+        >
+      </div>
+    </div>
+  </section>
+
+  <section class="section final-cta">
+    <div class="container">
+      <div class="final-card card">
+        <h2>Your chart is telling you something. Let's read it together.</h2>
+        <p class="muted">
+          Free, no sign-up, and private: the analysis runs on your device.
+        </p>
+        <a href={TOOL} class="btn btn-primary btn-lg with-icon"
+          >Analyze my chart <Icon name="arrow" size={18} /></a
+        >
+      </div>
+    </div>
+  </section>
+
+  <a href={TOOL} class="sticky-cta with-icon" aria-label="Analyze my chart">
+    Analyze my chart <Icon name="arrow" size={18} />
+  </a>
+</Base>
+
+<style>
+  .hero {
+    padding-top: 64px;
+    padding-bottom: 32px;
+  }
+  .hero h1 {
+    font-size: clamp(2.1rem, 5vw, 3.4rem);
+    font-weight: 800;
+    margin-bottom: 0.4em;
+  }
+  .grad {
+    background: linear-gradient(90deg, var(--rose), var(--purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .lead {
+    font-size: 1.2rem;
+    max-width: 620px;
+    color: var(--ink);
+  }
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin: 28px 0 16px;
+  }
+  .btn-lg {
+    padding: 16px 28px;
+    font-size: 1.08rem;
+  }
+  .trust {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 0;
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--purple);
+  }
+  .privacy-note {
+    font-size: 0.92rem;
+    color: var(--muted);
+  }
+  .how {
+    background: #fff;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 28px;
+    margin-top: 24px;
+  }
+  .step .num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--rose);
+    color: #fff;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .how-cta {
+    margin-top: 32px;
+  }
+  .final-cta .final-card {
+    text-align: center;
+    background: linear-gradient(180deg, #fff, var(--rose-soft));
+  }
+  .final-card h2 {
+    margin-bottom: 0.3em;
+  }
+  .final-card .btn {
+    margin-top: 18px;
+  }
+  .sticky-cta {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .sticky-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 60;
+      padding: 15px 20px;
+      border-radius: 999px;
+      background: var(--rose);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 30px rgba(214, 68, 127, 0.4);
+    }
+    :global(.site-footer) {
+      padding-bottom: 84px;
+    }
+  }
+</style>

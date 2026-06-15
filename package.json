@@ -1,9 +1,9 @@
 {
-  "name": "fertiluna",
+  "name": "suivi-grossesse",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "FertiLuna — outil web sans inscription d'analyse de cycle, inference ML 100% navigateur (Astro + Cloudflare + ONNX Runtime Web + DexieJS)",
+  "description": "Suivi Grossesse — outil web sans inscription d'analyse de cycle, inférence ML 100% navigateur (Astro + Cloudflare + ONNX Runtime Web + DexieJS)",
   "scripts": {
     "sync-assets": "node scripts/sync-assets.mjs",
     "dev": "npm run sync-assets && astro dev",

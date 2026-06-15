@@ -1,10 +1,11 @@
 ---
 import Base from "../layouts/Base.astro";
+import Icon from "../components/Icon.astro";
 ---
 
 <Base
-  title="À propos — méthodologie FertiLuna"
-  description="Comment fonctionne FertiLuna : un modèle de machine learning entraîné sur données synthétiques selon les règles de la symptothermie, exécuté entièrement dans votre navigateur."
+  title="À propos · méthodologie Suivi Grossesse"
+  description="Comment fonctionne Suivi Grossesse : une analyse par vision par ordinateur et un modèle interprétable, exécutés entièrement dans votre navigateur."
 >
   <section class="section">
     <div class="container narrow">
@@ -13,21 +14,31 @@ import Base from "../layouts/Base.astro";
 
       <h2>Aucune donnée ne quitte votre appareil</h2>
       <p>
-        FertiLuna ne crée pas de compte et ne stocke rien sur un serveur. Le
-        modèle d'analyse est téléchargé une seule fois puis mis en cache dans
-        votre navigateur (IndexedDB). Toute l'analyse — détection de
-        l'ovulation, évaluation des phases, classification — s'exécute
+        Suivi Grossesse ne crée pas de compte et ne stocke rien sur un serveur.
+        Le modèle d'analyse est téléchargé une seule fois puis mis en cache dans
+        votre navigateur (IndexedDB). Toute l'analyse (détection de
+        l'ovulation, évaluation des phases, classification) s'exécute
         <strong>localement</strong>, sur votre appareil, grâce à un moteur
         d'inférence ML (ONNX Runtime Web). Vos températures et tests ne sont
         jamais transmis.
       </p>
 
+      <h2>Une lecture d'image transparente</h2>
+      <p>
+        Pour lire une capture d'écran, nous utilisons une chaîne de
+        <strong>vision par ordinateur déterministe</strong> (segmentation par
+        couleur, lecture des axes, détection des points), et non un réseau de
+        neurones opaque. Chaque étape est inspectable et reproductible : la même
+        image donne toujours le même résultat, et vous vérifiez chaque valeur
+        avant l'analyse.
+      </p>
+
       <h2>Un modèle interprétable, pas une boîte noire</h2>
       <p>
-        L'analyse repose sur un algorithme de machine learning classique (forêt
-        aléatoire / <em>Random Forest</em>), et non sur un grand modèle de
-        langage. Ce choix est délibéré : chaque décision est traçable et
-        reproductible, et les règles s'appuient sur la symptothermie standard
+        La classification du cycle repose sur un algorithme de machine learning
+        classique (forêt aléatoire / <em>Random Forest</em>), et non sur un grand
+        modèle de langage. Ce choix est délibéré : chaque décision est traçable
+        et reproductible, et les règles s'appuient sur la symptothermie standard
         (méthode SENSIPLAN, règle des « 3 températures au-dessus de 6 »).
       </p>
 
@@ -49,12 +60,39 @@ import Base from "../layouts/Base.astro";
         complémentaire signale les courbes très atypiques.
       </p>
 
+      <h2>Pour aller plus loin : le rapport technique</h2>
+      <p>
+        Vous voulez creuser la méthode dans le détail (chaîne de vision par
+        ordinateur, calibration du modèle, contrat de parité Python / TypeScript,
+        livraison ONNX hors ligne) ? On a écrit tout ça noir sur blanc dans un
+        rapport technique de 23 pages, disponible en téléchargement.
+      </p>
+      <a
+        class="paper-card"
+        href="/doc/fertiluna-paper.pdf"
+        download="fertiluna-paper.pdf"
+      >
+        <span class="paper-card__icon" aria-hidden="true">
+          <Icon name="paper" size={28} />
+        </span>
+        <span class="paper-card__body">
+          <span class="paper-card__title"
+            >FertiLuna : un système d'analyse de cycle, privé et exécuté
+            dans le navigateur</span
+          >
+          <span class="paper-card__meta">PDF · 23 pages · ~440 Ko</span>
+        </span>
+        <span class="paper-card__cta" aria-hidden="true">
+          <Icon name="download" size={20} />
+        </span>
+      </a>
+
       <div class="disclaimer">
-        <span aria-hidden="true">&#9888;&#65039;</span>
+        <Icon name="alert" size={18} class="icon-purple" />
         <span
-          >FertiLuna n'est pas un dispositif médical et ne pose aucun diagnostic.
-          Les résultats sont indicatifs et ne remplacent pas l'avis d'un
-          professionnel de santé.</span
+          >Suivi Grossesse n'est pas un dispositif médical et ne pose aucun
+          diagnostic. Les résultats sont indicatifs et ne remplacent pas l'avis
+          d'un professionnel de santé.</span
         >
       </div>
     </div>
@@ -71,5 +109,58 @@ import Base from "../layouts/Base.astro";
   }
   .disclaimer {
     margin-top: 32px;
+  }
+  .paper-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+    padding: 16px 18px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      transform 0.15s ease;
+  }
+  .paper-card:hover,
+  .paper-card:focus-visible {
+    border-color: var(--purple);
+    box-shadow: 0 6px 22px -14px rgba(124, 60, 168, 0.45);
+    transform: translateY(-1px);
+  }
+  .paper-card__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #f3eef8;
+    color: var(--purple);
+    flex: 0 0 auto;
+  }
+  .paper-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+  .paper-card__title {
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .paper-card__meta {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .paper-card__cta {
+    color: var(--purple);
+    flex: 0 0 auto;
   }
 </style>

@@ -1,0 +1,248 @@
+---
+/**
+ * HeroBg : decorative hero background animation, shared by every landing page
+ * (FR + EN) so they can't drift apart. Drop it as the first child of a
+ * `.hero` section; it positions itself behind `.hero .container`.
+ *
+ * Light-blue spermatozoa crawl across the canvas; light-pink ovules drift in,
+ * a sperm occasionally reaches one, it turns into a heart and fades away. The
+ * fertilizing sperm disappears (and a fresh one is spawned elsewhere). Purely
+ * decorative (aria-hidden); fully paused under prefers-reduced-motion.
+ */
+---
+
+<canvas class="hero-bg" id="hero-bg" aria-hidden="true"></canvas>
+
+<style is:global>
+  /* These target the host .hero section, so they must be global (the component
+     renders inside it). */
+  .hero {
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .hero .container {
+    position: relative;
+    z-index: 1;
+  }
+</style>
+
+<script>
+  function initHeroBg() {
+    const canvasEl = document.getElementById("hero-bg") as HTMLCanvasElement | null;
+    if (!canvasEl || canvasEl.dataset.init === "1") return;
+    canvasEl.dataset.init = "1";
+    const ctx0 = canvasEl.getContext("2d");
+    const host0 = canvasEl.parentElement;
+    if (!ctx0 || !host0) return;
+    // Non-null aliases (declared types) so the values stay non-null inside the
+    // closures below — TS does not carry flow-narrowing of the originals across
+    // nested function boundaries.
+    const canvas: HTMLCanvasElement = canvasEl;
+    const ctx: CanvasRenderingContext2D = ctx0;
+    const host: HTMLElement = host0;
+
+    const reduce =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    const SPERM = "rgba(130,175,235,"; // light blue
+    const OVULE = "rgba(244,170,200,"; // light pink
+    const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+
+    let W = 0;
+    let H = 0;
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = host.clientWidth;
+      H = host.clientHeight;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    resize();
+    window.addEventListener("resize", resize);
+
+    interface Sperm {
+      x: number; y: number; ang: number; spd: number;
+      ph: number; phs: number; len: number; wig: number; dead?: boolean;
+    }
+    interface Ovule {
+      x: number; y: number; r: number;
+      vx: number; vy: number; state: "float" | "heart"; t: number; dead?: boolean;
+    }
+
+    const spawnSperm = (): Sperm => ({
+      x: rnd(0, W), y: rnd(0, H), ang: rnd(0, Math.PI * 2), spd: rnd(0.25, 0.7),
+      ph: rnd(0, Math.PI * 2), phs: rnd(0.16, 0.28), len: rnd(10, 18), wig: rnd(2.6, 4.4),
+    });
+    const spawnOvule = (): Ovule => ({
+      x: rnd(W * 0.12, W * 0.88), y: rnd(H * 0.15, H * 0.85), r: rnd(9, 14),
+      vx: rnd(-0.12, 0.12), vy: rnd(-0.1, 0.1), state: "float", t: 0,
+    });
+
+    const MAX_OVULES = 6;
+    const count = reduce ? 0 : Math.max(24, Math.min(64, Math.round(W / 24)));
+    const sperm: Sperm[] = Array.from({ length: count }, spawnSperm);
+    const ovules: Ovule[] = [];
+    let ovuleTimer = rnd(30, 90);
+
+    function drawHeart(cx: number, cy: number, size: number, alpha: number) {
+      const w = size;
+      const h = size;
+      const x = cx;
+      const y = cy - h * 0.5; // roughly center the heart on (cx, cy)
+      const top = h * 0.3;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(x, y + top);
+      ctx.bezierCurveTo(x, y, x - w / 2, y, x - w / 2, y + top);
+      ctx.bezierCurveTo(x - w / 2, y + (h + top) / 2, x, y + (h + top) * 0.72, x, y + h);
+      ctx.bezierCurveTo(x, y + (h + top) * 0.72, x + w / 2, y + (h + top) / 2, x + w / 2, y + top);
+      ctx.bezierCurveTo(x + w / 2, y, x, y, x, y + top);
+      ctx.closePath();
+      ctx.fillStyle = OVULE + 0.5 * alpha + ")";
+      ctx.strokeStyle = OVULE + 0.85 * alpha + ")";
+      ctx.lineWidth = 1.4;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawOvule(o: Ovule, now: number) {
+      if (o.state === "float") {
+        o.x += o.vx;
+        o.y += o.vy;
+        if (o.x < o.r || o.x > W - o.r) o.vx *= -1;
+        if (o.y < o.r || o.y > H - o.r) o.vy *= -1;
+        const pulse = 1 + Math.sin(now / 700) * 0.05;
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r * pulse, 0, Math.PI * 2);
+        ctx.fillStyle = OVULE + "0.16)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(o.x, o.y, o.r * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = OVULE + "0.5)";
+        ctx.fill();
+        for (const s of sperm) {
+          if (s.dead) continue;
+          if (Math.hypot(s.x - o.x, s.y - o.y) < o.r * 0.62) {
+            o.state = "heart";
+            o.t = 0;
+            s.dead = true; // the fertilizing sperm disappears
+            break;
+          }
+        }
+      } else {
+        o.t += 1;
+        const dur = 130;
+        const p = o.t / dur;
+        const alpha = p < 0.25 ? p / 0.25 : 1 - (p - 0.25) / 0.75;
+        const scale = 0.6 + Math.min(1, p * 1.7) * 0.9;
+        drawHeart(o.x, o.y, o.r * scale * 1.9, Math.max(0, alpha));
+        if (o.t >= dur) o.dead = true;
+      }
+    }
+
+    function drawSperm(s: Sperm) {
+      if (s.dead) return; // fertilized this frame — gone, will be respawned
+      s.ph += s.phs;
+      let target: Ovule | null = null;
+      let best = 1e9;
+      for (const o of ovules) {
+        if (o.state !== "float") continue;
+        const d = Math.hypot(o.x - s.x, o.y - s.y);
+        if (d < 230 && d < best) {
+          best = d;
+          target = o;
+        }
+      }
+      if (target) {
+        const desired = Math.atan2(target.y - s.y, target.x - s.x);
+        let diff = desired - s.ang;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        s.ang += diff * 0.05;
+        s.spd = Math.min(1.2, s.spd + 0.012);
+      } else {
+        s.ang += rnd(-0.08, 0.08);
+        s.spd += (0.45 - s.spd) * 0.02;
+      }
+      s.x += Math.cos(s.ang) * s.spd;
+      s.y += Math.sin(s.ang) * s.spd;
+      const m = 26;
+      if (s.x < -m) s.x = W + m;
+      if (s.x > W + m) s.x = -m;
+      if (s.y < -m) s.y = H + m;
+      if (s.y > H + m) s.y = -m;
+
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.ang);
+      ctx.beginPath();
+      const seg = 8;
+      for (let i = 0; i <= seg; i++) {
+        const tt = i / seg;
+        const x = -tt * s.len * 1.7;
+        const y = Math.sin(s.ph - tt * s.wig) * (3 * tt);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = SPERM + "0.5)";
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 3.2, 2.2, 0, 0, Math.PI * 2);
+      ctx.fillStyle = SPERM + "0.78)";
+      ctx.fill();
+      ctx.restore();
+    }
+
+    let raf = 0;
+    function frame(now: number) {
+      ctx.clearRect(0, 0, W, H);
+      if (!reduce) {
+        ovuleTimer -= 1;
+        const floating = ovules.filter((o) => o.state === "float").length;
+        if (ovuleTimer <= 0 && floating < MAX_OVULES) {
+          ovules.push(spawnOvule());
+          ovuleTimer = rnd(90, 220);
+        }
+      }
+      for (const o of ovules) drawOvule(o, now);
+      for (const s of sperm) drawSperm(s);
+      for (let i = ovules.length - 1; i >= 0; i--) {
+        if (ovules[i].dead) ovules.splice(i, 1);
+      }
+      // Respawn fertilizing sperm elsewhere so the swarm stays populated.
+      for (let i = 0; i < sperm.length; i++) {
+        if (sperm[i].dead) sperm[i] = spawnSperm();
+      }
+      raf = requestAnimationFrame(frame);
+    }
+
+    // Pause the loop when the hero scrolls out of view (saves battery).
+    if (!reduce) {
+      raf = requestAnimationFrame(frame);
+      if ("IntersectionObserver" in window) {
+        const io = new IntersectionObserver((entries) => {
+          for (const e of entries) {
+            if (e.isIntersecting && !raf) raf = requestAnimationFrame(frame);
+            else if (!e.isIntersecting && raf) {
+              cancelAnimationFrame(raf);
+              raf = 0;
+            }
+          }
+        });
+        io.observe(canvas);
+      }
+    }
+  }
+
+  initHeroBg();
+  document.addEventListener("astro:page-load", initHeroBg);
+</script>

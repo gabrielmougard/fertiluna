@@ -1,146 +1,247 @@
 ---
 /**
- * CurveDigitizer — upload a screenshot of a cycle chart and recover the per-day
+ * CurveDigitizer drops a screenshot of a cycle chart and recover the per-day
  * BBT and/or LH values, entirely in the browser. Handles dual-axis charts
  * (e.g. BBT on the right axis, LH on the left) via a per-series workflow.
  *
  * Emits `fertiluna:digitized` with `{ temps, lh }` (each `(number|null)[]` or
  * null) that the host page uses to fill its editable table.
+ *
+ * UX: one obvious action : drop or choose an image. The chart is read
+ * automatically and the CV model's detections (plot region, per-day markers,
+ * axis labels, table cells) are drawn back over the screenshot as overlay
+ * boxes, each with a hover tooltip. Manual point-by-point calibration is tucked
+ * behind an "Ajustement manuel" disclosure for the rare hard case.
  */
+import Icon from "./Icon.astro";
+import { CLOUD_BACKEND_ENABLED } from "../lib/consent";
+import { t, type Locale } from "../lib/i18n";
+
+interface Props {
+  /** UI locale; defaults to French (the primary audience). */
+  locale?: Locale;
+}
+const { locale: L = "fr" } = Astro.props as Props;
 ---
 
 <section class="digitizer card" id="digitizer">
   <div class="dz-head">
-    <h2>📷 Importer une capture d'écran</h2>
-    <p class="muted">
-      Vous avez une courbe dans une autre appli (Inito, Premom, Clearblue,
-      Flo…) ou sur papier&nbsp;? Importez une capture et FertiLuna récupère vos
-      valeurs. <strong>L'image reste sur votre appareil.</strong>
-    </p>
+    <h2 class="with-icon">
+      <Icon name="camera" size={22} class="icon-accent" /> {t("dz.sectionTitle", L)}
+    </h2>
+    <p class="muted" set:html={t("dz.sectionDesc", L)}></p>
   </div>
 
-  <div class="dz-mode" role="tablist" aria-label="Mode d'extraction">
-    <button type="button" id="mode-auto" class="dz-modebtn active">
-      ✨ Extraction auto (IA)
-    </button>
-    <button type="button" id="mode-manual" class="dz-modebtn">
-      🎯 Calibration manuelle
-    </button>
-  </div>
+  <!-- ─────────── DROPZONE (always visible) ─────────── -->
+  <label
+    class="dz-drop"
+    id="dz-drop"
+    for="auto-file"
+    aria-label={t("dz.dropTitle", L)}
+  >
+    <input type="file" accept="image/*" id="auto-file" hidden />
+    <span class="dz-drop-icon" aria-hidden="true">
+      <Icon name="upload" size={30} />
+    </span>
+    <span class="dz-drop-title">{t("dz.dropTitle", L)}</span>
+    <span class="dz-drop-sub muted">{t("dz.dropSub", L)}</span>
+    <span class="dz-drop-formats muted">{t("dz.dropFormats", L)}</span>
+  </label>
 
-  <!-- ─────────── AUTO (IA) PANEL ─────────── -->
+  {
+    CLOUD_BACKEND_ENABLED && (
+      <div class="dz-consent" role="group" aria-label={t("consent.title", L)}>
+        <label class="dz-consent-row">
+          <input type="checkbox" id="auto-cloud-consent" />
+          <span>
+            <strong>{t("consent.title", L)}.</strong> {t("consent.body", L)}
+          </span>
+        </label>
+        <p class="dz-disclaimer muted">{t("consent.medical", L)}</p>
+      </div>
+    )
+  }
+
+  <!-- ─────────── AUTO RESULT (shown once an image is read) ─────────── -->
   <div id="auto-panel" class="dz-panel">
-    <label class="dz-upload btn btn-ghost">
-      Choisir une image
-      <input type="file" accept="image/*" id="auto-file" hidden />
-    </label>
-
-    <p class="muted dz-hint">
-      Le modèle lit automatiquement les courbes <strong>et détecte l'échelle
-      (°C ou °F)</strong> — vous n'avez rien à saisir. Vérifiez l'aperçu, puis
-      importez ; vous pourrez corriger chaque valeur dans le tableau.
-    </p>
-
     <div class="dz-when-image">
       <div class="dz-stage">
-        <div class="dz-canvas-wrap">
+        <div class="dz-canvas-wrap" id="auto-stage">
           <canvas id="auto-canvas"></canvas>
           <canvas id="auto-overlay"></canvas>
+          <div class="dz-loader" id="auto-loader" hidden aria-live="polite">
+            <div class="dz-spinner" aria-hidden="true"></div>
+            <p class="dz-loader-label" id="auto-loader-label">
+              {t("dz.analyzing", L)}
+            </p>
+          </div>
         </div>
       </div>
 
-      <div class="dz-axes">
-        <label class="dz-incl"><input type="checkbox" id="auto-temp-on" /> 🌡️ Température (BBT)</label>
-        <label class="dz-incl"><input type="checkbox" id="auto-lh-on" /> 💧 LH / hormone</label>
+      <div class="dz-legend">
+        <label class="dz-incl">
+          <input type="checkbox" id="auto-temp-on" />
+          <span class="dz-swatch temp" aria-hidden="true"></span>
+          <Icon name="thermometer" size={16} /> {t("dz.tempLabel", L)}
+        </label>
+        <label class="dz-incl">
+          <input type="checkbox" id="auto-lh-on" />
+          <span class="dz-swatch lh" aria-hidden="true"></span>
+          <Icon name="drop" size={16} /> {t("dz.lhLabel", L)}
+        </label>
         <span class="dz-scale" id="auto-scale"></span>
       </div>
 
       <div class="dz-controls">
-        <button type="button" class="btn btn-primary" id="auto-import" disabled>
-          Importer dans le tableau ↓
+        <button type="button" class="btn btn-primary with-icon" id="auto-import" disabled>
+          {t("dz.import", L)} <Icon name="arrowDown" size={18} />
+        </button>
+        <button type="button" class="btn-text" id="auto-reset">
+          {t("dz.reset", L)}
         </button>
       </div>
-    </div>
 
-    <p class="dz-status muted" id="auto-status" aria-live="polite"></p>
+      <p class="dz-status muted" id="auto-status" aria-live="polite"></p>
+    </div>
   </div>
 
-  <!-- ─────────── MANUAL PANEL ─────────── -->
-  <div id="manual-panel" class="dz-panel" hidden>
-    <label class="dz-upload btn btn-ghost">
-      Choisir une image
-      <input type="file" accept="image/*" id="dz-file" hidden />
-    </label>
+  <!-- ─────────── MANUAL (advanced, collapsed) ─────────── -->
+  <details class="dz-advanced" id="dz-advanced">
+    <summary>
+      <Icon name="target" size={16} /> {t("dz.advanced", L)}
+      <span class="muted">{t("dz.advancedHint", L)}</span>
+    </summary>
 
-    <div class="dz-when-image">
-      <div class="dz-series" id="dz-series" role="tablist" aria-label="Série à extraire">
-        <span class="dz-series-label">Série :</span>
-        <button type="button" data-series="temp" class="dz-tab active">
-          🌡️ Température (BBT)
-        </button>
-        <button type="button" data-series="lh" class="dz-tab">
-          💧 LH / hormone
-        </button>
-      </div>
+    <div id="manual-panel" class="dz-panel">
+      <label class="dz-upload btn btn-ghost with-icon">
+        <Icon name="upload" size={16} /> {t("dz.manualUpload", L)}
+        <input type="file" accept="image/*" id="dz-file" hidden />
+      </label>
 
-      <ol class="dz-steps muted">
-        <li>Calibrez l'axe des <strong>jours</strong> (2 clics sur la ligne ZT/jour).</li>
-        <li>Calibrez l'axe de <strong>valeurs</strong> de la série choisie — attention, BBT et LH sont souvent sur des axes <strong>opposés</strong>.</li>
-        <li>Cliquez sur la <strong>courbe</strong> de cette série pour prendre sa couleur.</li>
-        <li>Changez de série pour la seconde courbe, ou importez.</li>
-      </ol>
-
-      <p class="dz-prompt" id="dz-prompt" aria-live="polite"></p>
-
-      <div class="dz-stage">
-        <div class="dz-canvas-wrap">
-          <canvas id="dz-canvas"></canvas>
-          <canvas id="dz-overlay"></canvas>
-          <canvas id="dz-loupe" class="dz-loupe"></canvas>
+      <div class="dz-when-image">
+        <div class="dz-series" id="dz-series" role="tablist" aria-label={t("dz.seriesLabel", L)}>
+          <span class="dz-series-label">{t("dz.seriesLabel", L)}</span>
+          <button type="button" data-series="temp" class="dz-tab active with-icon">
+            <Icon name="thermometer" size={15} /> {t("dz.tempLabel", L)}
+          </button>
+          <button type="button" data-series="lh" class="dz-tab with-icon">
+            <Icon name="drop" size={15} /> {t("dz.lhLabel", L)}
+          </button>
         </div>
-      </div>
 
-      <div class="dz-controls">
-        <label class="dz-tol">
-          Tolérance couleur
-          <input type="range" id="dz-tol" min="10" max="120" value="45" />
-          <span id="dz-tol-val">45</span>
-        </label>
-        <button type="button" class="btn-text" id="dz-redo">
-          Recalibrer cette série
-        </button>
-        <button type="button" class="btn btn-primary" id="dz-import" disabled>
-          Importer dans le tableau ↓
-        </button>
-      </div>
+        <ol class="dz-steps muted">
+          <li set:html={t("dz.step1", L)}></li>
+          <li set:html={t("dz.step2", L)}></li>
+          <li set:html={t("dz.step3", L)}></li>
+          <li set:html={t("dz.step4", L)}></li>
+        </ol>
 
-      <p class="dz-status muted" id="dz-status" aria-live="polite"></p>
+        <p class="dz-prompt" id="dz-prompt" aria-live="polite"></p>
+
+        <div class="dz-stage">
+          <div class="dz-canvas-wrap">
+            <canvas id="dz-canvas"></canvas>
+            <canvas id="dz-overlay"></canvas>
+            <canvas id="dz-loupe" class="dz-loupe"></canvas>
+          </div>
+        </div>
+
+        <div class="dz-controls">
+          <label class="dz-tol">
+            {t("dz.tol", L)}
+            <input type="range" id="dz-tol" min="10" max="120" value="45" />
+            <span id="dz-tol-val">45</span>
+          </label>
+          <button type="button" class="btn-text" id="dz-redo">
+            {t("dz.redo", L)}
+          </button>
+          <button type="button" class="btn btn-primary with-icon" id="dz-import" disabled>
+            {t("dz.import", L)} <Icon name="arrowDown" size={18} />
+          </button>
+        </div>
+
+        <p class="dz-status muted" id="dz-status" aria-live="polite"></p>
+      </div>
     </div>
-  </div>
+  </details>
 </section>
 
 <script>
   import { initDigitizer } from "../lib/digitizerUI";
   import { initAutoExtract } from "../lib/autoExtractUI";
+  import { t, toLocale } from "../lib/i18n";
 
+  const locale = toLocale(document.documentElement.lang);
   const root = document.getElementById("digitizer") as HTMLElement;
   const autoPanel = document.getElementById("auto-panel") as HTMLElement;
   const manualPanel = document.getElementById("manual-panel") as HTMLElement;
-  const modeAuto = document.getElementById("mode-auto") as HTMLButtonElement;
-  const modeManual = document.getElementById("mode-manual") as HTMLButtonElement;
+  const drop = document.getElementById("dz-drop") as HTMLElement;
+  const advanced = document.getElementById("dz-advanced") as HTMLDetailsElement;
+  const autoFile = document.getElementById("auto-file") as HTMLInputElement;
+  const resetBtn = document.getElementById("auto-reset") as HTMLButtonElement;
 
-  function showMode(which: "auto" | "manual") {
-    const auto = which === "auto";
-    autoPanel.hidden = !auto;
-    manualPanel.hidden = auto;
-    modeAuto.classList.toggle("active", auto);
-    modeManual.classList.toggle("active", !auto);
+  // Drag-and-drop: forward a dropped file into the auto file input + fire change.
+  if (drop && autoFile) {
+    const stop = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+    ["dragenter", "dragover"].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        stop(e);
+        drop.classList.add("is-drag");
+      }),
+    );
+    ["dragleave", "dragend", "drop"].forEach((ev) =>
+      drop.addEventListener(ev, (e) => {
+        stop(e);
+        drop.classList.remove("is-drag");
+      }),
+    );
+    drop.addEventListener("drop", (e) => {
+      const dt = (e as DragEvent).dataTransfer;
+      const file = dt?.files?.[0];
+      if (!file) return;
+      autoFile.files = dt!.files;
+      autoFile.dispatchEvent(new Event("change", { bubbles: true }));
+    });
   }
-  modeAuto.addEventListener("click", () => showMode("auto"));
-  modeManual.addEventListener("click", () => showMode("manual"));
+
+  // "Changer d'image" resets the auto panel and re-opens the dropzone.
+  resetBtn?.addEventListener("click", () => {
+    autoPanel.classList.remove("has-image");
+    drop.classList.remove("is-hidden");
+    autoFile.value = "";
+  });
 
   if (root) {
-    // Manual calibration controller (fallback / power users).
+    // Auto (primary) controller.
+    initAutoExtract({
+      root: autoPanel,
+      fileInput: autoFile,
+      canvas: document.getElementById("auto-canvas") as HTMLCanvasElement,
+      overlay: document.getElementById("auto-overlay") as HTMLCanvasElement,
+      status: document.getElementById("auto-status") as HTMLElement,
+      tempEnable: document.getElementById("auto-temp-on") as HTMLInputElement,
+      lhEnable: document.getElementById("auto-lh-on") as HTMLInputElement,
+      scaleInfo: document.getElementById("auto-scale") as HTMLElement,
+      importBtn: document.getElementById("auto-import") as HTMLButtonElement,
+      cloudConsent:
+        (document.getElementById("auto-cloud-consent") as HTMLInputElement) ??
+        undefined,
+      // collapse the dropzone once an image is loaded; expand manual on failure
+      onImageLoaded: () => {
+        drop.classList.add("is-hidden");
+        autoPanel.classList.add("has-image");
+      },
+      onUnavailable: (reason) => {
+        const s = document.getElementById("auto-status") as HTMLElement;
+        s.textContent = reason + t("dz.tryManual", locale);
+        advanced.open = true;
+      },
+    });
+
+    // Manual calibration controller (advanced / hard cases).
     initDigitizer({
       root: manualPanel,
       fileInput: document.getElementById("dz-file") as HTMLInputElement,
@@ -155,30 +256,8 @@
       status: document.getElementById("dz-status") as HTMLElement,
       seriesTabs: document.getElementById("dz-series") as HTMLElement,
     });
-
-    // Auto (IA) controller.
-    initAutoExtract({
-      root: autoPanel,
-      fileInput: document.getElementById("auto-file") as HTMLInputElement,
-      canvas: document.getElementById("auto-canvas") as HTMLCanvasElement,
-      overlay: document.getElementById("auto-overlay") as HTMLCanvasElement,
-      status: document.getElementById("auto-status") as HTMLElement,
-      tempEnable: document.getElementById("auto-temp-on") as HTMLInputElement,
-      tempMin: document.getElementById("auto-temp-min") as HTMLInputElement,
-      tempMax: document.getElementById("auto-temp-max") as HTMLInputElement,
-      lhEnable: document.getElementById("auto-lh-on") as HTMLInputElement,
-      lhMin: document.getElementById("auto-lh-min") as HTMLInputElement,
-      lhMax: document.getElementById("auto-lh-max") as HTMLInputElement,
-      importBtn: document.getElementById("auto-import") as HTMLButtonElement,
-      onUnavailable: (reason) => {
-        const s = document.getElementById("auto-status") as HTMLElement;
-        s.textContent =
-          reason + " Vous pouvez utiliser la calibration manuelle.";
-      },
-    });
   }
 </script>
-
 
 <style>
   .digitizer {
@@ -188,78 +267,301 @@
     margin-bottom: 4px;
     font-size: 1.2rem;
   }
-  .dz-upload {
-    display: inline-flex;
+
+  /* ── Dropzone ── */
+  .dz-drop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    margin-top: 14px;
+    padding: 38px 20px;
+    border: 2px dashed #e1d2ec;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #fff, var(--purple-soft));
     cursor: pointer;
-    margin: 8px 0;
+    transition: border-color 0.18s ease, background 0.18s ease,
+      transform 0.18s ease;
   }
+  .dz-drop:hover {
+    border-color: var(--rose);
+  }
+  .dz-drop.is-drag {
+    border-color: var(--rose);
+    background: var(--rose-soft);
+    transform: scale(1.01);
+  }
+  .dz-drop.is-hidden {
+    display: none;
+  }
+  .dz-drop-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--rose);
+    box-shadow: var(--shadow);
+    margin-bottom: 4px;
+  }
+  .dz-drop-title {
+    font-weight: 700;
+    font-size: 1.05rem;
+  }
+  .dz-drop-sub {
+    font-size: 0.92rem;
+  }
+  .dz-drop-formats {
+    font-size: 0.76rem;
+    margin-top: 2px;
+  }
+
+  /* cloud-analysis consent */
+  .dz-consent {
+    margin: 10px 0 4px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--purple-soft);
+  }
+  .dz-consent-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .dz-consent-row input {
+    margin-top: 3px;
+  }
+  .dz-disclaimer {
+    margin: 8px 0 0;
+    font-size: 0.78rem;
+  }
+
+  /* ── Result panels ── */
   .dz-when-image {
     display: none;
   }
   .dz-panel.has-image .dz-when-image {
     display: block;
+    animation: fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
-  /* mode toggle */
-  .dz-mode {
-    display: flex;
-    gap: 8px;
-    margin: 12px 0;
+  .dz-stage {
+    margin-top: 8px;
+    position: relative; /* anchor for the .dz-tip detection tooltip */
   }
-  .dz-modebtn {
-    border: 1.5px solid var(--line);
-    background: #fff;
-    border-radius: 999px;
-    padding: 8px 16px;
-    font: inherit;
+  .dz-canvas-wrap {
+    position: relative;
+    max-width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    line-height: 0;
+    background: #faf7fc;
+  }
+  #auto-canvas,
+  #auto-overlay,
+  #dz-canvas,
+  #dz-overlay {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  #auto-overlay,
+  #dz-overlay {
+    position: absolute;
+    inset: 0;
+  }
+  #dz-overlay {
+    cursor: crosshair;
+  }
+
+  /* tooltip shown when hovering a detected box / marker on the auto overlay */
+  .dz-tip {
+    position: absolute;
+    z-index: 6;
+    transform: translate(-50%, calc(-100% - 10px));
+    max-width: 220px;
+    padding: 5px 9px;
+    border-radius: 7px;
+    background: rgba(30, 30, 36, 0.94);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.25;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  }
+  .dz-tip[hidden] {
+    display: none;
+  }
+
+  /* modern loader shown while the CV pipeline computes the detections */
+  .dz-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(3px) saturate(1.1);
+    -webkit-backdrop-filter: blur(3px) saturate(1.1);
+    animation: dz-loader-in 0.2s ease both;
+  }
+  .dz-loader[hidden] {
+    display: none;
+  }
+  @keyframes dz-loader-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .dz-spinner {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 8%,
+      var(--rose) 92%,
+      var(--purple)
+    );
+    -webkit-mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 5px),
+      #000 calc(100% - 4px)
+    );
+    mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 5px),
+      #000 calc(100% - 4px)
+    );
+    animation: dz-spin 0.85s linear infinite;
+  }
+  @keyframes dz-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .dz-loader-label {
+    margin: 0;
+    max-width: 80%;
+    text-align: center;
     font-weight: 600;
     font-size: 0.92rem;
-    cursor: pointer;
-  }
-  .dz-modebtn.active {
-    border-color: var(--purple);
-    background: var(--purple-soft);
     color: var(--purple);
+    animation: dz-loader-pulse 1.4s ease-in-out infinite;
   }
-  .dz-hint {
-    font-size: 0.86rem;
-    margin: 4px 0 10px;
+  @keyframes dz-loader-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dz-spinner {
+      animation-duration: 2.6s;
+    }
+    .dz-loader-label {
+      animation: none;
+    }
   }
 
-  /* auto-mode axis inputs */
-  .dz-axes {
+  /* legend / series toggles */
+  .dz-legend {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
+    align-items: center;
     margin-top: 14px;
   }
-  .dz-axis {
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 10px 14px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .dz-axis legend {
-    font-weight: 600;
-    font-size: 0.9rem;
-    padding: 0 4px;
-  }
-  .dz-axis label {
-    font-size: 0.85rem;
-    color: var(--muted);
+  .dz-incl {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
   }
-  .dz-axis input[type="number"] {
-    width: 76px;
-    padding: 6px 8px;
-    border: 1px solid var(--line);
-    border-radius: 8px;
-    font: inherit;
+  .dz-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+  }
+  .dz-swatch.temp {
+    background: #5678d6;
+  }
+  .dz-swatch.lh {
+    background: var(--rose);
+  }
+  .dz-scale {
+    font-size: 0.85rem;
+    color: var(--purple);
+    font-weight: 600;
+  }
+
+  .dz-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .dz-tol {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .dz-status {
+    margin-top: 10px;
+    min-height: 1.2em;
+    font-size: 0.9rem;
+  }
+
+  /* ── Advanced (manual) disclosure ── */
+  .dz-advanced {
+    margin-top: 18px;
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+  .dz-advanced > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: var(--purple);
+    list-style: none;
+  }
+  .dz-advanced > summary::-webkit-details-marker {
+    display: none;
+  }
+  .dz-advanced > summary .muted {
+    font-weight: 400;
+  }
+  .dz-upload {
+    display: inline-flex;
+    cursor: pointer;
+    margin: 12px 0 8px;
   }
 
   .dz-series {
@@ -283,6 +585,7 @@
     font-size: 0.9rem;
     cursor: pointer;
     position: relative;
+    gap: 6px;
   }
   .dz-tab.active {
     border-color: var(--rose);
@@ -291,10 +594,12 @@
     font-weight: 600;
   }
   .dz-tab.done::after {
-    content: "✓";
-    color: var(--positive);
-    font-weight: 700;
-    margin-left: 6px;
+    content: "";
+    width: 14px;
+    height: 14px;
+    margin-left: 4px;
+    background: no-repeat center/contain
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e9e6b' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
   }
 
   .dz-steps {
@@ -305,34 +610,11 @@
   .dz-steps li {
     margin: 2px 0;
   }
-
   .dz-prompt {
     font-weight: 600;
     color: var(--purple);
     min-height: 1.3em;
     margin: 8px 0;
-  }
-  .dz-stage {
-    display: block;
-  }
-  .dz-canvas-wrap {
-    position: relative;
-    max-width: 100%;
-    overflow: auto;
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    line-height: 0;
-  }
-  #dz-canvas,
-  #dz-overlay {
-    width: 100%;
-    height: auto;
-    display: block;
-  }
-  #dz-overlay {
-    position: absolute;
-    inset: 0;
-    cursor: crosshair;
   }
   .dz-loupe {
     position: absolute;
@@ -342,24 +624,5 @@
     border: 2px solid #fff;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     z-index: 5;
-  }
-  .dz-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-top: 14px;
-  }
-  .dz-tol {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.9rem;
-    color: var(--muted);
-  }
-  .dz-status {
-    margin-top: 10px;
-    min-height: 1.2em;
-    font-size: 0.9rem;
   }
 </style>

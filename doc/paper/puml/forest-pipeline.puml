@@ -1,0 +1,58 @@
+@startuml forest-pipeline
+' Forest model training pipeline: synthetic -> features -> RF -> Platt -> iforest -> ONNX
+skinparam dpi 200
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam ActivityBackgroundColor #ECEFF1
+skinparam ActivityBorderColor #455A64
+skinparam ActivityDiamondBackgroundColor #FFF3E0
+skinparam ArrowColor #37474F
+skinparam NoteBackgroundColor #FFFDE7
+skinparam NoteBorderColor #F9A825
+
+title Cycle classifier --- training and export pipeline
+
+start
+:Generate N=50,000 synthetic cycles
+(5 physiological archetypes,
+weights 0.45/0.15/0.15/0.15/0.10);
+:Extract 30 NaN-safe features
+(SENSIPLAN 3-over-6 rule, follicular/luteal
+stats, thermal rise, LH peaks, slopes...);
+:Stratified split
+test 20%;
+split
+
+:Fit / Calib split (20% of train)
+fit set -> RandomForest;
+:RandomForestClassifier
+120 trees, depth 12, leaf 12,
+sqrt features, balanced;
+:CalibratedClassifierCV
+FrozenEstimator + sigmoid (Platt)
+on held-out calib set;
+note right
+  ONE prefit forest, not 5.
+  ~5.6 MB ONNX vs ~250 MB.
+  Makes 0.6 confidence
+  gate statistically honest.
+end note
+split again
+:IsolationForest
+150 estimators, contamination 0.10
+(out-of-distribution backstop);
+:Store decision-function
+percentiles p5/p50/p95;
+end split
+
+:skl2onnx export
+target opset 17 / ai.onnx.ml 3
+zipmap false, unwrap FrozenEstimator;
+:Parity check
+classifier max|sklearn - onnx| <= 1e-3
+(achieved ~1.2e-7);
+:Write manifest
+labels, feature means/stds,
+threshold, percentiles, sha256;
+stop
+@enduml

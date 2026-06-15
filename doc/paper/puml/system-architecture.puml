@@ -1,0 +1,61 @@
+@startuml system-architecture
+' System architecture: synthetic data -> ONNX -> Cloudflare static assets -> browser
+skinparam dpi 200
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam ArrowColor #37474F
+skinparam ArrowThickness 1.1
+skinparam rectangle {
+  BorderColor #455A64
+  BackgroundColor #ECEFF1
+  FontColor #102027
+}
+skinparam database {
+  BorderColor #2E7D32
+  BackgroundColor #E8F5E9
+}
+skinparam cloud {
+  BorderColor #1565C0
+  BackgroundColor #E3F2FD
+}
+skinparam node {
+  BorderColor #6A1B9A
+  BackgroundColor #F3E5F5
+}
+
+title FertiLuna --- end-to-end on-device ML system
+
+node "Offline (Python)" as TRAIN #FFF8E1 {
+  rectangle "Synthetic cycle generator\n(5 physiological archetypes)" as SYNTH
+  rectangle "scikit-learn\nRandomForest + IsolationForest" as SKL
+  rectangle "Classical-CV pipeline\n(OpenCV geometry, no training)\n+ PaddleOCR recognizer" as CV
+  rectangle "ONNX exporters\n(skl2onnx) + parity check\n+ manifests" as EXPORT
+}
+
+database "model/artifacts/ + public/models/\n*.onnx + *-manifest.json\n(forest, iforest, PaddleOCR)" as ART #E8F5E9
+
+cloud "Cloudflare Worker (Astro SSR)\nsame-origin static assets\n/models/*.onnx  /*.wasm" as CF
+
+node "User browser (client only)" as CLIENT #F3E5F5 {
+  rectangle "onnxruntime-web\n(WASM, SIMD, 1 thread)" as ORT
+  database "IndexedDB (Dexie)\nsha256-versioned model cache" as IDB
+  rectangle "Runtimes\nvisionCv/pipeline.ts (geometry)\ninference.ts (forest)" as RT
+}
+
+SYNTH --> SKL
+SKL --> EXPORT
+CV --> ART : ship PaddleOCR ONNX\n(geometry is pure TS, no model)
+EXPORT --> ART : write forest artifacts
+ART --> CF : scripts/sync-assets.mjs\ncopy to public/models
+CF --> IDB : one-time download\n(checksum-verified)
+IDB --> ORT : cached ArrayBuffer
+ORT --> RT
+RT --> RT : on-device prediction\n(no upload, no account)
+
+note right of CLIENT
+  Cycle data never leaves the device.
+  Only public, non-personal model
+  files are fetched (once).
+end note
+@enduml

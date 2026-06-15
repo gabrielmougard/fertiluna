@@ -1,33 +1,46 @@
 ---
 import Base from "../layouts/Base.astro";
+import TikTokWall from "../components/TikTokWall.astro";
+import Icon from "../components/Icon.astro";
+import HeroBg from "../components/HeroBg.astro";
+
+const TOOL = "/outils/analyse-courbe";
+
+// Honest trust signals only. No fabricated user counts or testimonials.
+const trust = [
+  "Gratuit (vraiment)",
+  "Sans inscription",
+  "100 % dans le navigateur",
+  "Résultat en ~2 min",
+];
 
 const tools = [
   {
-    href: "/outils/analyse-courbe",
+    href: TOOL,
     star: true,
     title: "Analyse simple de courbe",
-    desc: "Saisissez vos températures et tests LH du cycle. Obtenez une lecture claire : ovulation, phase lutéale, signaux à surveiller.",
+    desc: "Entrez vos températures et vos tests LH du cycle. Vous repartez avec une lecture claire : ovulation, phase lutéale, et les petits signaux qui méritent un œil.",
     cta: "Analyser mon cycle",
     available: true,
   },
   {
     href: "#",
     title: "Analyse approfondie (3 cycles)",
-    desc: "Comparez plusieurs cycles, identifiez les tendances et recevez des pistes de soutien naturel.",
+    desc: "Comparez plusieurs cycles, repérez les tendances de fond et recevez des pistes de soutien naturel.",
     cta: "Bientôt",
     available: false,
   },
   {
     href: "#",
-    title: "Calcul semaines de grossesse",
-    desc: "Test positif ? Calculez où vous en êtes et obtenez une checklist personnalisée.",
+    title: "Calcul des semaines de grossesse",
+    desc: "Test positif ? Calculez où vous en êtes et repartez avec une checklist faite pour vous.",
     cta: "Bientôt",
     available: false,
   },
   {
     href: "#",
     title: "Lecteur de bilan hormonal",
-    desc: "FSH, AMH, TSH, progestérone… traduisez vos résultats en langage clair.",
+    desc: "FSH, AMH, TSH, progestérone… on traduit vos résultats en français, pas en hiéroglyphes.",
     cta: "Bientôt",
     available: false,
   },
@@ -36,37 +49,87 @@ const tools = [
 
 <Base>
   <section class="hero section">
+    <HeroBg />
     <div class="container">
       <p class="eyebrow">Sans inscription &middot; 100 % dans votre navigateur</p>
       <h1>
-        Comprendre son cycle.<br />
-        <span class="grad">Prendre les bonnes décisions.</span>
+        Votre température a des choses à dire.<br />
+        <span class="grad">On la traduit pour vous.</span>
       </h1>
       <p class="lead">
-        Vous avez une courbe de température et des tests d'ovulation, mais vous
-        ne savez pas comment les lire&nbsp;? FertiLuna analyse vos données en
-        quelques minutes et vous explique ce qu'elles disent — avec les bonnes
-        questions à poser à votre médecin.
+        Prenez votre courbe en photo (ou tapez vos températures à la main, si ça
+        vous détend)&nbsp;: Suivi Grossesse la lit, repère l'ovulation et la
+        phase lutéale, et vous explique tout sans jargon et sans vous faire la
+        leçon. Promis, on ne vous proposera jamais une tisane miracle.
       </p>
       <div class="hero-cta">
-        <a href="/outils/analyse-courbe" class="btn btn-primary"
-          >Analyser ma courbe &rarr;</a
+        <a href={TOOL} class="btn btn-primary btn-lg with-icon"
+          >Analyser ma courbe <Icon name="arrow" size={18} /></a
         >
-        <a href="#outils" class="btn btn-ghost">Voir les outils</a>
+        <a href="#comment" class="btn btn-ghost">Comment ça marche</a>
       </div>
-      <p class="privacy-note">
-        &#128274; Vos données ne quittent jamais votre appareil. Aucun compte,
-        aucun stockage serveur.
+      <ul class="trust" aria-label="Points clés">
+        {
+          trust.map((t) => (
+            <li class="with-icon">
+              <Icon name="check" size={16} class="icon-accent" /> {t}
+            </li>
+          ))
+        }
+      </ul>
+      <p class="privacy-note with-icon">
+        <Icon name="lock" size={16} class="icon-muted" /> Vos données ne quittent
+        jamais votre appareil. Pas de compte, pas de serveur qui fouine, pas de
+        newsletter surprise.
       </p>
+    </div>
+  </section>
+
+  <TikTokWall profile="bijoux.choux2" />
+
+  <section id="comment" class="section how">
+    <div class="container">
+      <h2>Comment ça marche</h2>
+      <div class="steps">
+        <div class="step">
+          <span class="num">1</span>
+          <h3>Importez ou tapez</h3>
+          <p class="muted">
+            Une capture d'écran de votre appli de suivi, ou vos températures
+            jour par jour et vos tests LH. Au choix, selon votre humeur.
+          </p>
+        </div>
+        <div class="step">
+          <span class="num">2</span>
+          <h3>Analyse instantanée</h3>
+          <p class="muted">
+            Un modèle de vision lit la courbe directement dans votre navigateur.
+            Rien ne part en ligne, rien ne traîne sur un serveur.
+          </p>
+        </div>
+        <div class="step">
+          <span class="num">3</span>
+          <h3>Comprenez votre cycle</h3>
+          <p class="muted">
+            Une courbe annotée, une explication en français clair, et les bonnes
+            questions à glisser à votre médecin.
+          </p>
+        </div>
+      </div>
+      <div class="how-cta">
+        <a href={TOOL} class="btn btn-primary btn-lg with-icon"
+          >Commencer maintenant <Icon name="arrow" size={18} /></a
+        >
+      </div>
     </div>
   </section>
 
   <section id="outils" class="section">
     <div class="container">
-      <h2>Les outils FertiLuna</h2>
+      <h2>Les outils Suivi Grossesse</h2>
       <p class="muted">
-        Chaque outil est gratuit, immédiat, et conçu pour être compris même par
-        une débutante.
+        Chaque outil est gratuit, immédiat, et pensé pour rester clair même un
+        dimanche matin avant le café.
       </p>
       <div class="tool-grid">
         {
@@ -75,11 +138,15 @@ const tools = [
               href={t.href}
               class={`tool-card card ${t.available ? "" : "soon"}`}
             >
-              {t.star && <span class="star">&#11088; Outil principal</span>}
+              {t.star && (
+                <span class="star with-icon">
+                  <Icon name="chart" size={13} /> Outil principal
+                </span>
+              )}
               <h3>{t.title}</h3>
               <p class="muted">{t.desc}</p>
-              <span class={`tool-cta ${t.available ? "live" : ""}`}>
-                {t.cta} {t.available && <>&rarr;</>}
+              <span class={`tool-cta ${t.available ? "live with-icon" : ""}`}>
+                {t.cta} {t.available && <Icon name="arrow" size={16} />}
               </span>
             </a>
           ))
@@ -88,42 +155,35 @@ const tools = [
     </div>
   </section>
 
-  <section class="section how">
+  <section class="section final-cta">
     <div class="container">
-      <h2>Comment ça marche</h2>
-      <div class="steps">
-        <div class="step">
-          <span class="num">1</span>
-          <h3>Saisissez vos données</h3>
-          <p class="muted">
-            Vos températures jour par jour, et vos tests LH si vous en avez.
-          </p>
-        </div>
-        <div class="step">
-          <span class="num">2</span>
-          <h3>Analyse instantanée</h3>
-          <p class="muted">
-            Un modèle de machine learning tourne directement dans votre
-            navigateur. Rien n'est envoyé en ligne.
-          </p>
-        </div>
-        <div class="step">
-          <span class="num">3</span>
-          <h3>Comprenez votre cycle</h3>
-          <p class="muted">
-            Une courbe annotée, une explication claire, et les questions à poser
-            à votre médecin.
-          </p>
-        </div>
+      <div class="final-card card">
+        <h2>Votre courbe a un message. On vous aide à le décoder.</h2>
+        <p class="muted">
+          Gratuit, sans inscription, et privé&nbsp;: l'analyse se fait sur votre
+          appareil, et nulle part ailleurs.
+        </p>
+        <a href={TOOL} class="btn btn-primary btn-lg with-icon"
+          >Analyser ma courbe <Icon name="arrow" size={18} /></a
+        >
       </div>
     </div>
   </section>
+
+  <!-- Mobile-only sticky conversion bar: TikTok traffic is overwhelmingly
+       mobile, so a persistent one-tap path to the tool is the highest-leverage
+       conversion element on small screens. -->
+  <a href={TOOL} class="sticky-cta with-icon" aria-label="Analyser ma courbe">
+    Analyser ma courbe <Icon name="arrow" size={18} />
+  </a>
 </Base>
 
+
 <style>
+  /* .hero positioning + .hero-bg layering live in HeroBg.astro (shared). */
   .hero {
     padding-top: 64px;
-    padding-bottom: 40px;
+    padding-bottom: 32px;
   }
   .hero h1 {
     font-size: clamp(2.1rem, 5vw, 3.4rem);
@@ -145,7 +205,22 @@ const tools = [
     display: flex;
     gap: 14px;
     flex-wrap: wrap;
-    margin: 28px 0 14px;
+    margin: 28px 0 16px;
+  }
+  .btn-lg {
+    padding: 16px 28px;
+    font-size: 1.08rem;
+  }
+  .trust {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 0;
+    margin: 0 0 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--purple);
   }
   .privacy-note {
     font-size: 0.92rem;
@@ -177,7 +252,9 @@ const tools = [
     margin-top: 8px;
   }
   .star {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 0.72rem;
     font-weight: 700;
     color: var(--rose-dark);
@@ -186,7 +263,9 @@ const tools = [
     border-radius: 999px;
   }
   .tool-cta {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin-top: 14px;
     font-weight: 600;
     color: var(--muted);
@@ -217,5 +296,47 @@ const tools = [
     color: #fff;
     font-weight: 700;
     margin-bottom: 10px;
+  }
+  .how-cta {
+    margin-top: 32px;
+  }
+
+  .final-cta .final-card {
+    text-align: center;
+    background: linear-gradient(180deg, #fff, var(--rose-soft));
+  }
+  .final-card h2 {
+    margin-bottom: 0.3em;
+  }
+  .final-card .btn {
+    margin-top: 18px;
+  }
+
+  /* Sticky mobile CTA */
+  .sticky-cta {
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .sticky-cta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 60;
+      padding: 15px 20px;
+      border-radius: 999px;
+      background: var(--rose);
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 10px 30px rgba(214, 68, 127, 0.4);
+    }
+    /* keep the footer clear of the sticky bar */
+    :global(.site-footer) {
+      padding-bottom: 84px;
+    }
   }
 </style>

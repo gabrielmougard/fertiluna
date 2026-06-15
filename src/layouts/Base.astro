@@ -1,18 +1,40 @@
 ---
 import "../styles/global.css";
+import Logo from "../components/Logo.astro";
+import Icon from "../components/Icon.astro";
+import DomainTitle from "../components/DomainTitle.astro";
+import { t, type Locale } from "../lib/i18n";
+
+const GITHUB_URL = "https://github.com/gabrielmougard/fertiluna";
 
 interface Props {
   title?: string;
   description?: string;
+  /** Resolved UI locale. When passed (e.g. the SSR tool page), the language
+   *  toggle switches via ?lang= on the current path instead of routing to the
+   *  /en/ landing. Omit on the FR/EN landing pages (path-based). */
+  locale?: Locale;
 }
 const {
-  title = "FertiLuna — Comprendre son cycle, prendre les bonnes décisions",
-  description = "Analysez votre courbe de température et vos tests LH en quelques minutes, sans inscription. Une analyse pédagogique, 100 % dans votre navigateur — vos données ne quittent jamais votre appareil.",
+  title = "Suivi Grossesse : comprendre son cycle et prendre les bonnes décisions",
+  description = "Analysez votre courbe de température et vos tests LH en quelques minutes, sans inscription. Une analyse pédagogique, 100 % dans votre navigateur. Vos données ne quittent jamais votre appareil.",
+  locale,
 } = Astro.props;
+
+// English landing lives under /en/. When a page resolves its own locale (the
+// tool page), we honor that and switch language via ?lang=; otherwise we fall
+// back to the path-based landing routing (/ vs /en/).
+const path = Astro.url.pathname;
+const paramSwitch = locale != null;
+const resolved: Locale = locale ?? (path.startsWith("/en") ? "en" : "fr");
+const isEN = resolved === "en";
+const htmlLang = resolved;
+const frHref = paramSwitch ? "?lang=fr" : "/";
+const enHref = paramSwitch ? "?lang=en" : "/en/";
 ---
 
 <!doctype html>
-<html lang="fr">
+<html lang={htmlLang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,22 +45,56 @@ const {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+    <meta property="og:locale" content={isEN ? "en_US" : "fr_FR"} />
+    <!-- hreflang alternates. When the FR + EN alias domains are live, swap
+         these relative hrefs for the absolute per-domain URLs (e.g.
+         https://courbe-grossesse.fr/ and https://pregnancy-curve.com/). -->
+    <link rel="alternate" hreflang="fr" href="/" />
+    <link rel="alternate" hreflang="en" href="/en/" />
+    <link rel="alternate" hreflang="x-default" href="/" />
     <link
       rel="preconnect"
       href="https://fonts.googleapis.com"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
     />
   </head>
   <body>
     <header class="site-header">
       <div class="container">
-        <a href="/" class="brand">
-          <span class="flower" aria-hidden="true">&#127804;</span>
-          <span>FertiLuna</span>
-        </a>
+        <span class="brand">
+          <a
+            href="/"
+            class="brand-mark"
+            aria-label={t("brand.domain", resolved)}
+          >
+            <Logo size={32} variant="mark" />
+          </a>
+          <DomainTitle locale={resolved} />
+        </span>
         <nav class="nav-links" aria-label="Navigation principale">
-          <a href="/outils/analyse-courbe">Analyser ma courbe</a>
-          <a href="/#outils">Les outils</a>
-          <a href="/a-propos">À propos</a>
+          {
+            isEN ? (
+              <>
+                <a href="/outils/analyse-courbe">{t("nav.tool", resolved)}</a>
+                <a href="/a-propos">{t("nav.about", resolved)}</a>
+              </>
+            ) : (
+              <>
+                <a href="/outils/analyse-courbe">{t("nav.tool", resolved)}</a>
+                <a href="/#outils">{t("nav.tools", resolved)}</a>
+                <a href="/a-propos">{t("nav.about", resolved)}</a>
+              </>
+            )
+          }
+          <span class="lang-switch" aria-label="Language">
+            <a href={frHref} class={isEN ? "" : "on"}>FR</a>
+            <span aria-hidden="true">·</span>
+            <a href={enHref} class={isEN ? "on" : ""}>EN</a>
+          </span>
         </nav>
       </div>
     </header>
@@ -49,15 +105,23 @@ const {
 
     <footer class="site-footer">
       <div class="container">
-        <p>
-          <strong>FertiLuna</strong> n'est pas un dispositif médical. Les
-          résultats sont indicatifs et ne remplacent pas l'avis d'un
-          professionnel de santé.
-        </p>
+        <p set:html={t("footer.medical", resolved)}></p>
         <p class="muted">
-          Aucune donnée n'est collectée ni envoyée à un serveur. Toute l'analyse
-          se déroule dans votre navigateur. &copy; {new Date().getFullYear()}
-          FertiLuna.
+          {t("footer.privacy", resolved)} &copy; {new Date().getFullYear()}
+          Suivi Grossesse.
+        </p>
+        <p class="footer-source">
+          <span>{t("footer.sourceLead", resolved)}</span>
+          <a
+            class="footer-source__link"
+            href={GITHUB_URL}
+            target="_blank"
+            rel="noopener"
+            aria-label={t("footer.sourceLabel", resolved)}
+          >
+            <Icon name="github" size={16} />
+            <span>github.com/gabrielmougard/fertiluna</span>
+          </a>
         </p>
       </div>
     </footer>

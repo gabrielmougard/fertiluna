@@ -1,10 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <circle cx="32" cy="32" r="30" fill="#fbeef4"/>
-  <g fill="#d6447f">
-    <ellipse cx="32" cy="16" rx="7" ry="12"/>
-    <ellipse cx="48" cy="32" rx="12" ry="7"/>
-    <ellipse cx="32" cy="48" rx="7" ry="12"/>
-    <ellipse cx="16" cy="32" rx="12" ry="7"/>
-  </g>
-  <circle cx="32" cy="32" r="7" fill="#f5c518"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d6447f"/>
+      <stop offset="1" stop-color="#7e4b9e"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#g)"/>
+  <line x1="10" y1="33" x2="38" y2="33" stroke="#fff" stroke-opacity="0.32" stroke-width="2" stroke-linecap="round"/>
+  <path d="M10 31 L15 30.5 L19 31 L22 24 L26 18 L31 17 L38 17" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="22" cy="24" r="3.4" fill="#fff"/>
+  <circle cx="22" cy="24" r="1.5" fill="#7e4b9e"/>
 </svg>

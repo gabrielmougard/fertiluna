@@ -1,0 +1,55 @@
+@startuml vision-architecture
+' Chart-Vision CNN (v2) data flow: encoder -> 3 heads (soft-argmax value, presence, scale)
+skinparam dpi 200
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #37474F
+skinparam rectangle {
+  BorderColor #455A64
+  FontColor #102027
+}
+
+title Chart-Vision network (v2) --- depthwise-separable encoder with three decode heads
+
+rectangle "Input image\n[B, 3, 224, 384]\nImageNet-normalized NCHW" as IN #E3F2FD
+
+rectangle "Stem  ConvBNAct 3x3 s2\n-> /2" as STEM #ECEFF1
+rectangle "Depthwise-separable blocks\nDWSep x6, downsample to /8\nfeature map (B, C, h~=28, w~=48)" as ENC #ECEFF1
+
+IN --> STEM
+STEM --> ENC
+
+' --- value head ---
+rectangle "Heat refine (DWSep + 1x1)\nHeat head 1x1 -> (B, S, h, w)" as HEAT #FFF3E0
+rectangle "Soft-argmax over HEIGHT\nprob = softmax(heat/tau, dim=h)\nvalue = sum_h prob * ys\nys: top=1.0 .. bottom=0.0" as SARG #FFF3E0
+rectangle "Interp width -> N_DAYS=35\n**value** [B, 2, 35] in [0,1]" as VAL #FFE0B2
+
+ENC --> HEAT
+HEAT --> SARG
+SARG --> VAL
+
+' --- presence head ---
+rectangle "Mean-pool height -> (B, C, w)\nConv1d refine" as PRES1 #E8F5E9
+rectangle "Present head Conv1d -> (B, S, w)\nInterp -> **present** logits [B, 2, 35]" as PRES2 #C8E6C9
+
+ENC --> PRES1
+PRES1 --> PRES2
+
+' --- scale head ---
+rectangle "Global avg pool -> (B, C)\nMLP -> **scale** logits [B, 2]\n(celsius / fahrenheit)" as SCALE #F3E5F5
+
+ENC --> SCALE
+
+note bottom of VAL
+  value = vertical position BY CONSTRUCTION.
+  Browser uses it directly (NO sigmoid).
+end note
+note bottom of PRES2
+  Browser applies sigmoid, thresholds at 0.5.
+end note
+note bottom of SCALE
+  Browser argmax -> axis [min,max]
+  for de-normalization (no OCR).
+end note
+@enduml

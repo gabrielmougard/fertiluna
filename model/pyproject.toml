@@ -30,6 +30,15 @@ vision = [
     "matplotlib>=3.8",
     "onnxscript>=0.1",
 ]
+# Classical-CV chart digitizer (alternative to the CNN). Pure OpenCV pipeline,
+# no torch/onnx required. The same algorithm is portable to opencv.js for
+# in-browser inference — see fertiluna_vision_cv/README.md.
+#   uv pip install -e ".[vision_cv]"
+vision_cv = [
+    "opencv-python>=4.9",
+    "pillow>=10.0",
+    "numpy>=1.26",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]

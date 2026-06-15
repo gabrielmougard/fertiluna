@@ -2,12 +2,12 @@
 import { defineConfig } from "astro/config";
 import cloudflare from "@astrojs/cloudflare";
 
-// FertiLuna runs as a Cloudflare Worker (SSR for SEO on the marketing/tool
+// Suivi Grossesse runs as a Cloudflare Worker (SSR for SEO on the marketing/tool
 // shell) while ALL machine-learning inference happens client-side in the
 // browser via onnxruntime-web. No user data ever leaves the device — the model
 // is fetched once as a static asset and cached in IndexedDB (DexieJS).
 export default defineConfig({
-  site: "https://fertil-luna.fr",
+  site: "https://suivi-grossesse.fr",
   output: "server",
   adapter: cloudflare({
     platformProxy: { enabled: true },

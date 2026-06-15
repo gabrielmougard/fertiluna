@@ -109,3 +109,43 @@ export const LABEL_COPY: Record<CycleLabel, LabelCopy> = {
       "Il n'y a pas assez de mesures fiables sur ce cycle pour produire une analyse robuste. Continuez à relever votre température chaque matin au réveil, à la même heure, pendant un cycle complet.",
   },
 };
+
+/** English mirror of LABEL_COPY (tone keys are language-agnostic). */
+export const LABEL_COPY_EN: Record<CycleLabel, LabelCopy> = {
+  ovulation_confirmee: {
+    title: "Ovulation confirmed",
+    tone: "positive",
+    summary:
+      "The thermal rise is clear and sustained for at least 3 days, and your luteal phase is a good length. This points to a good-quality ovulatory cycle.",
+  },
+  ovulation_douteuse: {
+    title: "Insufficient thermal rise",
+    tone: "caution",
+    summary:
+      "A temperature rise was detected but it does not meet the 3-day confirmation criteria. This can indicate a late or low-quality ovulation.",
+    doctorQuestion:
+      "Ask for a mid-luteal progesterone test (around day 21) to confirm the quality of the ovulation.",
+  },
+  anovulation: {
+    title: "Suspected anovulation",
+    tone: "caution",
+    summary:
+      "No ovulation could be identified in this cycle. The curve stays flat or too irregular. It may be a one-off cycle, but if it recurs, talk to your doctor.",
+    doctorQuestion:
+      "If the lack of ovulation recurs, ask for a hormone panel (FSH, LH, estradiol) early in the cycle.",
+  },
+  phase_luteale_courte: {
+    title: "Short luteal phase",
+    tone: "caution",
+    summary:
+      "Your ovulation is confirmed, but your luteal phase appears shorter than 10 days. A short luteal phase can make implantation more difficult.",
+    doctorQuestion:
+      "Ask your doctor for a luteal-phase progesterone test, and discuss possible support.",
+  },
+  donnees_insuffisantes: {
+    title: "Insufficient data",
+    tone: "info",
+    summary:
+      "There are not enough reliable measurements in this cycle to produce a robust analysis. Keep taking your temperature every morning on waking, at the same time, for a full cycle.",
+  },
+};

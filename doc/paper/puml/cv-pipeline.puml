@@ -1,0 +1,46 @@
+@startuml cv-pipeline
+' Classical-CV chart digitizer: ordered pipeline stages
+skinparam dpi 200
+skinparam defaultFontName Helvetica
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam ArrowColor #37474F
+skinparam ArrowThickness 1.1
+skinparam rectangle {
+  BorderColor #455A64
+  FontColor #102027
+}
+
+title Classical-CV chart digitizer --- ordered pipeline (\nOpenCV + numpy + PaddleOCR ONNX)
+
+rectangle "Screenshot (RGBA PNG)" as IMG #E3F2FD
+
+rectangle "1. preprocess\nEXIF-transpose, RGB->BGR,\nresize into [1200,2400] work band" as PRE #ECEFF1
+rectangle "2. color_segmentation\nHSV inRange: blue (BBT),\norange (Ratio), purple (Level)\n+ morphological close" as SEG #ECEFF1
+rectangle "3. plot_region\nink bbox U gridline band\n-> PlotRegion(x0,y0,x1,y1)" as PLOT #ECEFF1
+rectangle "4. axis_columns (PaddleOCR)\nmargin word-boxes -> column clusters\nOCR -> RANSAC line fit per column\nclassify ratio/level/bbt_f/bbt_c" as AX #FFF3E0
+rectangle "5. day_axis\nautocorrelation pitch + date row\n+ gridlines -> DayGrid(cells)\nN_DAYS=35 left-packed" as DAY #ECEFF1
+rectangle "6. marker_detection\nwhite-blob + colored-ring;\nresolve LH color (orange vs purple);\ndiscrete OR dense line-sampling" as MARK #E8F5E9
+rectangle "7. table_extract\ncalendar/CD/DPO/Sex/CM/\nSymptoms/hCG rows + cells" as TAB #ECEFF1
+rectangle "8. guardrails\nsnap axis labels to AP grid;\nlinear gap interpolation\n(present mask untouched)" as GUARD #FFF3E0
+rectangle "9. quality\nweighted per-stage confidence;\nstatus: extracted / low_conf /\nnot_a_chart (axis is a gate)" as Q #F3E5F5
+
+rectangle "**ChartResult**\nvalue[2,35] in [0,1], present[2,35],\nscale_idx (C/F), table, confidence,\nstatus, interpolated, debug overlay" as RES #FFE0B2
+
+IMG --> PRE
+PRE --> SEG
+SEG --> PLOT
+PLOT --> AX
+AX --> DAY
+DAY --> MARK
+MARK --> TAB
+TAB --> GUARD
+GUARD --> Q
+Q --> RES
+
+note right of MARK
+  Deterministic: no learned weights.
+  Every threshold is an explicit,
+  auditable constant.
+end note
+@enduml

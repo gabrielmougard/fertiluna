@@ -2,14 +2,38 @@
 import Base from "../../layouts/Base.astro";
 import AdSlot from "../../components/AdSlot.astro";
 import CurveDigitizer from "../../components/CurveDigitizer.astro";
+import Icon from "../../components/Icon.astro";
 import { CYCLE_MAX_DAYS } from "../../lib/constants";
+import { t, resolveRequestLocale, LOCALE_COOKIE } from "../../lib/i18n";
 
 const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
+
+// Locale: trafficked-user detection (Accept-Language / country) overridden by
+// the explicit ?lang= toggle, which we persist in a cookie so the choice
+// survives navigation.
+const override = Astro.url.searchParams.get("lang");
+const country =
+  (Astro.locals as { runtime?: { cf?: { country?: string } } })?.runtime?.cf
+    ?.country ?? null;
+const locale = resolveRequestLocale({
+  override,
+  cookie: Astro.cookies.get(LOCALE_COOKIE)?.value ?? null,
+  acceptLanguage: Astro.request.headers.get("accept-language"),
+  country,
+});
+if (override) {
+  Astro.cookies.set(LOCALE_COOKIE, locale, {
+    path: "/",
+    maxAge: 60 * 60 * 24 * 365,
+    sameSite: "lax",
+  });
+}
 ---
 
 <Base
-  title="Analyse de courbe de température — FertiLuna"
-  description="Saisissez vos températures et tests LH jour par jour. FertiLuna détecte l'ovulation, évalue vos phases folliculaire et lutéale, et vous explique votre cycle — sans inscription, dans votre navigateur."
+  title={t("tool.metaTitle", locale)}
+  description={t("tool.metaDescription", locale)}
+  locale={locale}
 >
   <div class="container">
     <div class="tool-layout">
@@ -17,34 +41,29 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
 
       <div class="tool-main">
         <header class="tool-head">
-          <p class="eyebrow">&#11088; Outil 1 — Analyse simple de courbe</p>
-          <h1>Analysez votre courbe</h1>
-          <p class="muted">
-            Saisissez vos températures du matin (et vos tests LH si vous en
-            avez). L'analyse tourne <strong>dans votre navigateur</strong> —
-            rien n'est envoyé en ligne.
+          <p class="eyebrow with-icon">
+            <Icon name="chart" size={15} /> {t("tool.eyebrow", locale)}
           </p>
+          <h1>{t("tool.h1", locale)}</h1>
+          <p class="muted" set:html={t("tool.intro", locale)}></p>
         </header>
 
         <div class="disclaimer">
-          <span aria-hidden="true">&#9888;&#65039;</span>
-          <span
-            >FertiLuna n'est pas un dispositif médical. Les résultats sont
-            indicatifs et ne remplacent pas l'avis d'un professionnel de santé.</span
-          >
+          <Icon name="alert" size={18} class="icon-purple" />
+          <span>{t("consent.medical", locale)}</span>
         </div>
 
         <!-- ── IMPORT FROM SCREENSHOT ── -->
-        <CurveDigitizer />
+        <CurveDigitizer locale={locale} />
 
         <!-- ── INPUT ── -->
         <section id="input-panel" class="card input-card">
-          <div class="data-toggle" role="group" aria-label="Type de données">
+          <div class="data-toggle" role="group">
             <label class="chk"
-              ><input type="checkbox" id="use-temp" checked /> Température</label
+              ><input type="checkbox" id="use-temp" checked /> {t("tool.useTemp", locale)}</label
             >
             <label class="chk"
-              ><input type="checkbox" id="use-lh" /> Tests LH</label
+              ><input type="checkbox" id="use-lh" /> {t("tool.useLh", locale)}</label
             >
           </div>
 
@@ -52,9 +71,9 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
             <table class="cycle-table" id="cycle-table">
               <thead>
                 <tr>
-                  <th scope="col">Jour</th>
-                  <th scope="col" class="col-temp">Temp. (°C)</th>
-                  <th scope="col" class="col-lh hidden">LH (0–3)</th>
+                  <th scope="col">{t("tool.colDay", locale)}</th>
+                  <th scope="col" class="col-temp">{t("tool.colTemp", locale)}</th>
+                  <th scope="col" class="col-lh hidden">{t("tool.colLh", locale)}</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,7 +90,7 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
                           max="39"
                           data-kind="temp"
                           data-day={d - 1}
-                          placeholder="—"
+                          placeholder="36.5"
                           aria-label={`Température jour ${d}`}
                         />
                       </td>
@@ -84,7 +103,7 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
                           max="3"
                           data-kind="lh"
                           data-day={d - 1}
-                          placeholder="—"
+                          placeholder="1.5"
                           aria-label={`Test LH jour ${d}`}
                         />
                       </td>
@@ -96,13 +115,14 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
           </div>
 
           <div class="actions">
-            <button id="analyze-btn" class="btn btn-primary"
-              >Analyser mon cycle &rarr;</button
-            >
+            <button id="analyze-btn" class="btn btn-primary with-icon">
+              {t("tool.analyze", locale)}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+            </button>
             <button id="demo-btn" class="btn btn-ghost"
-              >Remplir un exemple</button
+              >{t("tool.demo", locale)}</button
             >
-            <button id="clear-btn" class="btn-text">Effacer</button>
+            <button id="clear-btn" class="btn-text">{t("tool.clear", locale)}</button>
           </div>
 
           <p id="model-status" class="model-status muted" aria-live="polite"></p>
@@ -128,9 +148,21 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
   import { buildResultContent } from "../../lib/resultNarrative";
   import { cachedBytes } from "../../lib/modelCache";
   import { CYCLE_MAX_DAYS } from "../../lib/constants";
+  import { t, tf, toLocale } from "../../lib/i18n";
+
+  // The server set <html lang> from the resolved locale; mirror it client-side.
+  const locale = toLocale(document.documentElement.lang);
 
   const $ = <T extends HTMLElement>(sel: string) =>
     document.querySelector(sel) as T;
+
+  // Inline SVG icon snippets (no emoji) reused in the JS-built result markup.
+  const SVG_ARROW =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>';
+  const SVG_STETHO =
+    '<svg class="ic" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4v5a4 4 0 0 0 8 0V4"/><path d="M6 4H4.5M14 4h1.5"/><path d="M10 17a4 4 0 0 0 8 0v-2"/><circle cx="18" cy="13" r="2"/></svg>';
+  const SVG_ALERT =
+    '<svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 4.3 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><circle cx="12" cy="16.6" r="0.6" fill="currentColor" stroke="none"/></svg>';
 
   const useTemp = $("#use-temp") as HTMLInputElement;
   const useLh = $("#use-lh") as HTMLInputElement;
@@ -180,7 +212,7 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
           const bytes = await cachedBytes();
           if (bytes > 0)
             setStatus(
-              `Modèle prêt et mis en cache (${(bytes / 1e6).toFixed(1)} Mo). Vos analyses suivantes seront instantanées et hors-ligne.`,
+              tf("tool.modelReady", locale, { mb: (bytes / 1e6).toFixed(1) }),
             );
         },
         () => setStatus(""),
@@ -192,9 +224,9 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
     if (p.phase === "ready") return;
     if (p.file && p.file.total > 0) {
       const pct = Math.round((p.file.loaded / p.file.total) * 100);
-      setStatus(`Chargement du modèle… ${pct}%`);
+      setStatus(tf("tool.modelLoading", locale, { pct }));
     } else {
-      setStatus("Préparation du modèle…");
+      setStatus(t("tool.modelPreparing", locale));
     }
   }
 
@@ -273,9 +305,7 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
         });
     }
     syncColumns();
-    setStatus(
-      `${filled} valeurs importées depuis l'image. Vérifiez-les puis lancez l'analyse.`,
-    );
+    setStatus(tf("tool.imported", locale, { n: filled }));
     $("#input-panel").scrollIntoView({ behavior: "smooth", block: "start" });
   });
 
@@ -291,14 +321,12 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
       tempsRaw.filter((v) => v != null).length +
       lhRaw.filter((v) => v != null).length;
     if (filled < 5) {
-      setStatus(
-        "Saisissez au moins quelques jours de données pour lancer l'analyse.",
-      );
+      setStatus(t("tool.needData", locale));
       return;
     }
 
     analyzeBtn.disabled = true;
-    analyzeBtn.textContent = "Analyse en cours…";
+    analyzeBtn.textContent = t("tool.analyzing", locale);
     try {
       await ensureModelLoaded((p) => reportLoad(p));
       const temps = toCurveArray(tempsRaw);
@@ -308,12 +336,10 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
       setStatus("");
     } catch (err) {
       console.error(err);
-      setStatus(
-        "Une erreur est survenue pendant l'analyse. Réessayez dans un instant.",
-      );
+      setStatus(t("tool.error", locale));
     } finally {
       analyzeBtn.disabled = false;
-      analyzeBtn.textContent = "Analyser mon cycle →";
+      analyzeBtn.innerHTML = `${t("tool.analyze", locale)} ${SVG_ARROW}`;
     }
   });
 
@@ -328,7 +354,7 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
     lhRaw: (number | null)[],
     analysis: Awaited<ReturnType<typeof analyzeCycle>>,
   ) {
-    const c = buildResultContent(analysis);
+    const c = buildResultContent(analysis, locale);
     const chart = renderCurveChart({
       temps: tempsRaw,
       lh: lhRaw,
@@ -359,14 +385,14 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
 
     const doctorQ = c.doctorQuestions.length
       ? `<div class="doctor-card">
-           <h3>&#129658; À demander à votre médecin</h3>
+           <h3 class="with-icon">${SVG_STETHO} ${esc(t("tool.doctorTitle", locale))}</h3>
            <ul>${c.doctorQuestions.map((q) => `<li>${esc(q)}</li>`).join("")}</ul>
          </div>`
       : "";
 
     const glossary = c.glossary.length
       ? `<details class="glossary">
-           <summary>Glossaire — comprendre les termes</summary>
+           <summary>${esc(t("tool.glossaryTitle", locale))}</summary>
            <dl>${c.glossary
              .map(
                (g) =>
@@ -381,8 +407,8 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
       : "";
 
     const confidenceBadge = c.confident
-      ? `<span class="conf-badge ok">Confiance ${c.confidencePct}%</span>`
-      : `<span class="conf-badge low">Confiance limitée (${c.confidencePct}%)</span>`;
+      ? `<span class="conf-badge ok">${esc(tf("tool.confidence", locale, { pct: c.confidencePct }))}</span>`
+      : `<span class="conf-badge low">${esc(tf("tool.confidenceLow", locale, { pct: c.confidencePct }))}</span>`;
 
     resultPanel.innerHTML = `
       <div class="result-verdict card tone-${c.tone}">
@@ -397,9 +423,9 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
       <div class="card chart-card">
         ${chart}
         <p class="chart-legend">
-          <span class="dot rose"></span> Phase folliculaire
-          <span class="dot purple"></span> Phase lutéale
-          <span class="dot amber"></span> Pic LH
+          <span class="dot rose"></span> ${esc(t("tool.legendFollicular", locale))}
+          <span class="dot purple"></span> ${esc(t("tool.legendLuteal", locale))}
+          <span class="dot amber"></span> ${esc(t("tool.legendLhPeak", locale))}
         </p>
       </div>
 
@@ -411,8 +437,8 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
       ${glossary}
 
       <div class="result-footer disclaimer">
-        <span aria-hidden="true">&#9888;&#65039;</span>
-        <span>Cette analyse est indicative. En cas de doute ou de difficulté à concevoir, parlez-en à votre médecin ou sage-femme.</span>
+        ${SVG_ALERT}
+        <span>${esc(t("tool.resultDisclaimer", locale))}</span>
       </div>
     `;
     resultPanel.hidden = false;
@@ -660,6 +686,16 @@ const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
   .doctor-card h3 {
     margin-top: 0;
     color: var(--purple);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .doctor-card .ic {
+    color: var(--purple);
+  }
+  .result-footer .ic {
+    color: var(--purple);
+    flex: 0 0 auto;
   }
   .doctor-card ul {
     margin: 0;

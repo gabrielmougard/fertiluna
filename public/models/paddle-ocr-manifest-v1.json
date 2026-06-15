@@ -1,0 +1,46 @@
+{
+  "version": "v1",
+  "task": "ocr-recognition",
+  "model": {
+    "name": "en_PP-OCRv3_rec",
+    "input": {
+      "shape": "(N, 3, 48, W)",
+      "height": 48,
+      "channel_order": "RGB",
+      "normalize": {
+        "mean": [
+          0.5,
+          0.5,
+          0.5
+        ],
+        "std": [
+          0.5,
+          0.5,
+          0.5
+        ]
+      },
+      "scale": "1/255"
+    },
+    "output": {
+      "shape": "(N, T, num_classes)",
+      "decoder": "CTC"
+    }
+  },
+  "files": {
+    "model": {
+      "path": "paddle-ocr-rec-v1.onnx",
+      "sha256": "3fe7d0640546906adf94d168da176262db0fa06191f75c81482631f83e7cad8a",
+      "bytes": 8968230
+    },
+    "dict": {
+      "path": "paddle-ocr-dict-v1.txt",
+      "sha256": "5662df9d2d03f0e8ca0d3b0649d6acbab904b6a14b3d3521463c71c37c668ce3",
+      "bytes": 190
+    }
+  },
+  "source": {
+    "model_url": "https://paddleocr.bj.bcebos.com/PP-OCRv3/english/en_PP-OCRv3_rec_infer.tar",
+    "dict_url": "https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/release/2.7/ppocr/utils/en_dict.txt",
+    "opset": 11
+  }
+}
