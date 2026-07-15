@@ -3,11 +3,6 @@ import Base from "../../layouts/Base.astro";
 import TikTokWall from "../../components/TikTokWall.astro";
 import Icon from "../../components/Icon.astro";
 import HeroBg from "../../components/HeroBg.astro";
-import AdSlot from "../../components/AdSlot.astro";
-import { getAdConfig, adsLive } from "../../lib/ads";
-
-const ads = getAdConfig(Astro.locals);
-const adsOn = adsLive(ads);
 
 // English landing for the `pregnancy` alias domain. The TOOL itself is still
 // French — full tool localisation is the deferred "smart router + i18n" task —
@@ -70,15 +65,6 @@ const trust = [
     intro="Short, clear explainers on temperature, ovulation and how to read your charts. Tap a video to play it here."
     ctaLabel="See everything on TikTok"
   />
-
-  <div class="container">
-    <AdSlot
-      placement="inline"
-      live={adsOn}
-      pubId={ads.pubId}
-      slotId={ads.slots.inline}
-    />
-  </div>
 
   <section id="how" class="section how">
     <div class="container">

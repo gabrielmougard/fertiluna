@@ -270,17 +270,13 @@ h3 {
   border-color: var(--purple);
 }
 
-/* ── Tool layout with ad rails (desktop) ──────────── */
+/* ── Tool layout ──────────────────────────────────── */
 .tool-layout {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
-}
-@media (min-width: 1180px) {
-  .tool-layout {
-    grid-template-columns: 160px minmax(0, 1fr) 160px;
-    max-width: 1180px;
-  }
+  max-width: 860px;
+  margin: 0 auto;
 }
 
 /* ── Ad slots ─────────────────────────────────────────

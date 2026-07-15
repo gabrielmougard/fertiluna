@@ -3,13 +3,8 @@ import Base from "../layouts/Base.astro";
 import TikTokWall from "../components/TikTokWall.astro";
 import Icon from "../components/Icon.astro";
 import HeroBg from "../components/HeroBg.astro";
-import AdSlot from "../components/AdSlot.astro";
-import { getAdConfig, adsLive } from "../lib/ads";
 
 const TOOL = "/outils/analyse-courbe";
-
-const ads = getAdConfig(Astro.locals);
-const adsOn = adsLive(ads);
 
 // Honest trust signals only. No fabricated user counts or testimonials.
 const trust = [
@@ -92,15 +87,6 @@ const tools = [
 
   <TikTokWall profile="bijoux.choux2" />
 
-  <div class="container">
-    <AdSlot
-      placement="inline"
-      live={adsOn}
-      pubId={ads.pubId}
-      slotId={ads.slots.inline}
-    />
-  </div>
-
   <section id="comment" class="section how">
     <div class="container">
       <h2>Comment ça marche</h2>
@@ -168,16 +154,6 @@ const tools = [
       </div>
     </div>
   </section>
-
-  <div class="container">
-    <AdSlot
-      placement="inline"
-      hideMobile
-      live={adsOn}
-      pubId={ads.pubId}
-      slotId={ads.slots.inline}
-    />
-  </div>
 
   <section class="section final-cta">
     <div class="container">

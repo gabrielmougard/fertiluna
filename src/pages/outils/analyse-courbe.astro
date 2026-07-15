@@ -1,16 +1,11 @@
 ---
 import Base from "../../layouts/Base.astro";
-import AdSlot from "../../components/AdSlot.astro";
 import CurveDigitizer from "../../components/CurveDigitizer.astro";
 import Icon from "../../components/Icon.astro";
 import { CYCLE_MAX_DAYS } from "../../lib/constants";
 import { t, resolveRequestLocale, LOCALE_COOKIE } from "../../lib/i18n";
-import { getAdConfig, adsLive } from "../../lib/ads";
 
 const days = Array.from({ length: CYCLE_MAX_DAYS }, (_, i) => i + 1);
-
-const ads = getAdConfig(Astro.locals);
-const adsOn = adsLive(ads);
 
 // Locale: trafficked-user detection (Accept-Language / country) overridden by
 // the explicit ?lang= toggle, which we persist in a cookie so the choice
@@ -41,13 +36,6 @@ if (override) {
 >
   <div class="container">
     <div class="tool-layout">
-      <AdSlot
-        placement="rail"
-        live={adsOn}
-        pubId={ads.pubId}
-        slotId={ads.slots.rail}
-      />
-
       <div class="tool-main">
         <header class="tool-head">
           <p class="eyebrow with-icon">
@@ -157,25 +145,7 @@ if (override) {
           <ul id="history-list" class="history-list"></ul>
         </section>
       </div>
-
-      <AdSlot
-        placement="rail"
-        live={adsOn}
-        pubId={ads.pubId}
-        slotId={ads.slots.rail}
-      />
     </div>
-  </div>
-
-  <!-- Mobile-only sticky bottom anchor ad. The tool page has no sticky CTA, so
-       a single slim anchor here monetises mobile without cluttering content. -->
-  <div class="ad-anchor-wrap">
-    <AdSlot
-      placement="anchor"
-      live={adsOn}
-      pubId={ads.pubId}
-      slotId={ads.slots.bottom}
-    />
   </div>
 </Base>
 
